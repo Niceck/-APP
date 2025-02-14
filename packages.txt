@@ -1,0 +1,2 @@
+build-essential
+libta-lib0-dev
