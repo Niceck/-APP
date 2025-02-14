@@ -1,2 +1,2 @@
 tushare
-talib
+TA-Lib
