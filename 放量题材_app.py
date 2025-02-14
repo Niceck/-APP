@@ -1,7 +1,7 @@
 import streamlit as st
 import tushare as ts
 import pandas as pd
-import talib
+import pandas_ta as ta
 import datetime as dt
 import os
 import logging
