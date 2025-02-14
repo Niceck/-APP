@@ -1,3 +1,2 @@
 tushare
-pandas
-ta-lib
+TA-Lib
