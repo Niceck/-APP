@@ -1,3 +1,5 @@
-tushare
-pandas-ta
-numpy==1.21.0  # 这里替换为你本地的 numpy 版本
+streamlit==1.42.0
+numpy==1.21.0
+pandas==2.0.3
+TA-Lib==0.4.0
+tushare==1.4.18
