@@ -4,25 +4,6 @@ import importlib
 # 设置页面配置（必须放在所有 Streamlit 命令的最前面）
 st.set_page_config(page_title="Stock Analysis App", layout="wide")
 
-# 将本地图片转换为 base64 编码
-image_path = "yinhe.png"
-with open(image_path, "rb") as image_file:
-    encoded_image = base64.b64encode(image_file.read()).decode()
-
-# CSS 设置背景图片
-st.markdown(
-    f"""
-    <style>
-    .stApp {{
-        background-image: url("data:image/png;base64,{encoded_image}");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        min-height: 100vh;
-    }}
-    </style>
-    """, unsafe_allow_html=True
-)
 
 # 初始化 session_state 中的 selected_module
 if "selected_module" not in st.session_state:
