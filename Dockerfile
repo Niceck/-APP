@@ -7,7 +7,7 @@ RUN apt-get update && \
 # 设置工作目录
 WORKDIR /app
 
-# 将代码复制到容器中
+# 将应用代码复制到容器
 COPY . .
 
 # 安装 Python 依赖
