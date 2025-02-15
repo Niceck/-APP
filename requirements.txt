@@ -1,4 +1,4 @@
-streamlit==1.42.0
+./wheels/TA_Lib‑0.4.0‑cp310‑cp310‑linux_x86_64.whl
 numpy==1.21.0
 pandas==2.0.3
 TA-Lib==0.4.0
