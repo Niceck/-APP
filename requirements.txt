@@ -1,5 +1,3 @@
-./wheels/TA_Lib‑0.4.0‑cp310‑cp310‑linux_x86_64.whl
 numpy==1.21.0
 pandas==2.0.3
-TA-Lib==0.4.0
 tushare==1.4.18
