@@ -7,11 +7,11 @@ RUN apt-get update && \
 # 设置工作目录
 WORKDIR /app
 
-# 将应用代码复制到容器
+# 将代码复制到容器中
 COPY . .
 
 # 安装 Python 依赖
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 运行 Streamlit 应用
+# 启动 Streamlit 应用
 CMD ["streamlit", "run", "选股_app.py"]
