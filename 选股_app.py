@@ -75,7 +75,7 @@ if selected_module:
         st.error(f"调用 {selected_module} 模块时出错: {e}")
 else:
     # 主页展示内容
-    st.title("欢迎使用 恢恢数据分析 App")
+    st.title("欢迎使用 Stock Analysis App")
     st.write("这是一个功能强大的股票数据分析工具。")
     st.markdown("""
     ### 应用功能
