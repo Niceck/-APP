@@ -4,8 +4,6 @@ import os
 import streamlit as st
 import base64
 
-# 设置页面配置
-st.set_page_config(page_title="Stock Analysis App", layout="wide")
 
 # 将本地图片转换为 base64 编码
 image_path = "yinhe.png"
