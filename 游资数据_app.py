@@ -3,7 +3,6 @@ import pandas as pd
 import os
 import streamlit as st
 
-
 # 设置 Pandas 显示选项，确保 '接受机构' 列完全显示
 pd.set_option('display.max_colwidth', None)
 
