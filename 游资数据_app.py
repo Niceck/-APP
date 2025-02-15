@@ -2,20 +2,33 @@ import tushare as ts
 import pandas as pd
 import os
 import streamlit as st
-import base64
 
 
+# 将本地图片转换为 base64 编码
+image_path = "yinhe.png"
+with open(image_path, "rb") as image_file:
+    encoded_image = base64.b64encode(image_file.read()).decode()
 
-# 显示标题
-st.title("恢恢游资库")
-
-# 你可以在这里继续添加其他内容，例如数据展示、图表等
+# CSS 设置背景图片
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image: url("data:image/png;base64,{encoded_image}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        min-height: 100vh;
+    }}
+    </style>
+    """, unsafe_allow_html=True
+)
 
 # 设置 Pandas 显示选项，确保 '接受机构' 列完全显示
 pd.set_option('display.max_colwidth', None)
 
-# 从 secrets.toml 文件中读取 Tushare API Token，使用默认值避免 KeyError
-tushare_token = st.secrets.get("api_keys", {}).get("tushare_token", "your_default_token_here")
+# 从 secrets.toml 文件中读取 Tushare API Token
+tushare_token = st.secrets["api_keys"]["tushare_token"]
 
 # 设置 Tushare API Token
 ts.set_token(tushare_token)
@@ -36,16 +49,22 @@ def fetch_data(trade_date, ts_code, hm_name, start_date, end_date, limit, offset
     return df
 
 def main():
+    import streamlit as st
+
     # 用户输入 - 在主页设置输入框
-    trade_date = st.text_input("交易日期", "")
-    ts_code = st.text_input("股票代码", "")
-    hm_name = st.text_input("游资名称", "")
+    st.title("参数设置")
+
+    trade_date = st.text_input("交易日期格式：20250205", "")
+    ts_code = st.text_input("股票代码格式：000901.SZ", "")
+    hm_name = st.text_input("游资名称：陈小群 北京炒家等", "")
     start_date = st.text_input("开始日期", "")
     end_date = st.text_input("结束日期", "")
     limit = st.number_input("查询的最大数据条数", min_value=1, value=100)  # 用户输入 limit
 
+
+
     # 查询按钮
-    if st.button('查询数据'):
+    if st.sidebar.button('查询数据'):
         # 拉取数据
         df = fetch_data(trade_date, ts_code, hm_name, start_date, end_date, limit)
 
@@ -72,6 +91,20 @@ def main():
             # 显示数据表格
             st.write("### 游资数据")
             st.dataframe(df, use_container_width=True, hide_index=True)
+
+            # 将结果保存到文件
+            desktop_path = os.path.join(os.path.expanduser("~"), "Desktop", "游资数据.txt")
+            try:
+                with open(desktop_path, 'w', encoding='utf-8') as f:
+                    # 写入表头
+                    f.write("\t".join(df.columns) + "\n")
+                    # 写入数据
+                    for index, row in df.iterrows():
+                        f.write("\t".join(str(val) for val in row) + "\n")
+
+                st.success(f"数据已保存到桌面，文件路径：{desktop_path}")
+            except Exception as e:
+                st.error(f"保存文件时发生错误：{e}")
 
 # 确保脚本以 main() 函数执行
 if __name__ == "__main__":
