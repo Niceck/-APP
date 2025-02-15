@@ -4,26 +4,6 @@ import os
 import streamlit as st
 
 
-# 将本地图片转换为 base64 编码
-image_path = "yinhe.png"
-with open(image_path, "rb") as image_file:
-    encoded_image = base64.b64encode(image_file.read()).decode()
-
-# CSS 设置背景图片
-st.markdown(
-    f"""
-    <style>
-    .stApp {{
-        background-image: url("data:image/png;base64,{encoded_image}");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        min-height: 100vh;
-    }}
-    </style>
-    """, unsafe_allow_html=True
-)
-
 # 设置 Pandas 显示选项，确保 '接受机构' 列完全显示
 pd.set_option('display.max_colwidth', None)
 
