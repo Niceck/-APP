@@ -9,18 +9,16 @@ if "selected_module" not in st.session_state:
     st.session_state["selected_module"] = None
 
 # 定义模块分组
-update_modules = [
-    "更新题材池", "更新涨停池", "更新超买池",
+update_modules = ["游资查询", "查询数据2"]
+analysis_modules = ["评分系统", "新闻分析"]
+query_modules = ["更新题材池", "更新涨停池", "更新超买池",
     "更新游资池", "更新调研池", "更新扣非池",
-    "更新新闻快讯", "更新新闻联播"
-]
-analysis_modules = ["评分系统", "游资查询", "新闻查询"]
-query_modules = ["查询数据1", "查询数据2"]  # 查询数据模块列表
+    "更新新闻快讯", "更新新闻联播"]  # 查询数据模块列表
 
 # 在侧边栏创建三个展开器
-update_expander = st.sidebar.expander("更新数据", expanded=False)
+update_expander = st.sidebar.expander("查询数据", expanded=False)
 analysis_expander = st.sidebar.expander("分析数据", expanded=False)
-query_expander = st.sidebar.expander("查询数据", expanded=False)  # 可根据需求设置 expanded 参数
+query_expander = st.sidebar.expander("更新数据", expanded=False)  # 可根据需求设置 expanded 参数
 
 # 在“更新数据”展开器中显示按钮
 for module in update_modules:
@@ -81,13 +79,11 @@ else:
     st.write("这是一个功能强大的股票数据分析工具。")
     st.markdown("""
     ### 应用功能
-    - **更新数据**：更新题材池、涨停池、超买池、游资池、调研池、扣非池、新闻快讯、新闻联播等数据
-    - **分析数据**：评分系统、游资查询、新闻查询等数据分析工具
-    - **查询数据**：提供查询数据1、查询数据2等数据查询功能
+    - **查询数据**：游资数据、机构数据、资金流向等
+    - **分析数据**：股票池筛选分析、新闻筛选分析等
+    - **更新数据**：更新题材池、涨停池、超买池、游资池、调研池、扣非池、新闻快讯、新闻联播等数据    
     """)
     st.info("请在左侧栏中选择相应模块开始使用。")
-    # 可选：展示一张图片（请替换为实际图片链接或本地图片路径）
-    st.image("https://via.placeholder.com/800x400.png?text=Stock+Analysis+App", use_container_width=True)
 
 # 示例函数：渲染 HTML 表格
 def render_html_table(results):
