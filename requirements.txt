@@ -2,5 +2,4 @@ streamlit
 numpy
 pandas
 tushare
-ta-lib-bin
 
