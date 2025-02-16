@@ -2,7 +2,7 @@ import streamlit as st
 import importlib
 
 # 设置页面配置（必须放在所有 Streamlit 命令的最前面）
-st.set_page_config(page_title="Stock Analysis App", layout="wide")
+st.set_page_config(page_title="恢恢数据分析 App", layout="wide")
 
 # 初始化 session_state 中的 selected_module
 if "selected_module" not in st.session_state:
