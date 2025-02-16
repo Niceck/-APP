@@ -3,4 +3,5 @@ pandas
 tushare
 ta-lib-bin
 numpy==1.26.4
+ratelimit
 
