@@ -4,15 +4,6 @@ import os
 import streamlit as st
 import base64
 
-# Convert local image to base64 (optional)
-image_path = "yinhe.png"
-if os.path.exists(image_path):
-    with open(image_path, "rb") as image_file:
-        encoded_image = base64.b64encode(image_file.read()).decode()
-    st.image(image_path, caption="银河图片", use_container_width=True)
-
-# Display title
-st.title("恢恢游资库")
 
 # Set pandas display option to show full column width
 pd.set_option('display.max_colwidth', None)
@@ -39,6 +30,7 @@ def fetch_data(trade_date, ts_code, hm_name, start_date, end_date, limit, offset
     return df
 
 def main():
+    st.title("恢恢游资库")
     # Place parameter inputs in the left sidebar
     st.sidebar.header("参数设置")
     trade_date = st.sidebar.text_input("交易日期", "")
