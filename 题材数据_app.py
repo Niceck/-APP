@@ -314,8 +314,6 @@ def main():
                 f.write(f"{code}\n")
         st.success(f"成分股文件已保存至：{output_file}")
 
-        # 返回保存的文件路径以便主脚本调用 Git 更新
-        return output_file
 
     except Exception as e:
         logging.error(f"执行过程中出错: {e}")
