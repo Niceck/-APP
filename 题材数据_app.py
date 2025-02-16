@@ -236,6 +236,7 @@ def main():
         """
         程序自动获取最新数据，筛选出“近期最强题材”与“近期升温题材”，
         并统计每个题材参与的总游资数（基于题材成分股）。
+        若最新交易日无游资数据，则使用前一天交易日数据进行查询。
         """
     )
 
@@ -303,7 +304,6 @@ def main():
             comps = get_component_stocks(theme, [latest_date])
             all_stock_codes.update(comps)
         st.write(f"成分股总数: {len(all_stock_codes)}")
-
         output_folder = "date"
         os.makedirs(output_folder, exist_ok=True)
         output_file = os.path.join(output_folder, '成分股.txt')
@@ -313,13 +313,6 @@ def main():
             for code in sorted(all_stock_codes):
                 f.write(f"{code}\n")
         st.success(f"成分股文件已保存至：{output_file}")
-
-
-    except Exception as e:
-        logging.error(f"执行过程中出错: {e}")
-        st.error(f"程序执行出错：{e}")
-
-
 
     except Exception as e:
         logging.error(f"执行过程中出错: {e}")
