@@ -5,7 +5,6 @@ import logging
 import time  # 用于 sleep
 from datetime import datetime, timedelta
 import streamlit as st
-from git_utils import git_update, git_push  # 导入 Git 更新函数
 
 # ============ 配置信息 ============ #
 # 从 secrets.toml 文件中读取 Tushare API Token
@@ -26,7 +25,6 @@ logging.basicConfig(
 
 # 设置相对路径的 'date' 文件夹
 DATE_FOLDER = "date"
-os.makedirs(DATE_FOLDER, exist_ok=True)
 
 # 文件路径定义：存储在 'date' 文件夹
 CCTV_NEWS_FILE = os.path.join(DATE_FOLDER, 'cctv_news_data.csv')
@@ -67,7 +65,7 @@ def read_local_cache(file_path):
         df = clean_df(df)
         return df
     except Exception as e:
-        st.write(f"读取本地缓存失败: {e}")
+        print(f"读取本地缓存失败: {e}")
         logging.error("读取本地缓存失败", exc_info=True)
         return None
 
@@ -87,7 +85,7 @@ def get_start_date_from_df(df):
             return None
         return max_date.strftime('%Y%m%d')
     except Exception as e:
-        st.write(f"解析本地数据最大日期出错: {e}")
+        print(f"解析本地数据最大日期出错: {e}")
         logging.error("解析本地数据最大日期出错", exc_info=True)
         return None
 
@@ -251,21 +249,11 @@ def main():
     # 4. 合并数据并去重保存
     if success and not new_df.empty:
         merge_and_save(new_df, CCTV_NEWS_FILE)
-        # 输出合并后的数据预览
-        try:
-            merged_df = pd.read_csv(CCTV_NEWS_FILE, dtype={'date': str})
-            st.subheader("合并后的新闻数据预览")
-            st.dataframe(merged_df)
-        except Exception as e:
-            st.write(f"读取合并后的数据预览失败: {e}")
-        # 执行 Git 更新操作：这里设置更新模式为 "update"
-        if os.path.exists(CCTV_NEWS_FILE):
-            git_update(CCTV_NEWS_FILE, update_mode="update")
-            git_push(branch="main")
     else:
         st.write("无新数据或拉取失败，不更新本地文件。")
 
     st.write("数据拉取与保存流程结束。")
+
 
 if __name__ == "__main__":
     main()
