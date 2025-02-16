@@ -4,6 +4,7 @@ from collections import defaultdict
 import os
 import streamlit as st
 from tqdm import tqdm
+from git_utils import git_update, git_push  # 导入 Git 操作函数
 
 # 从 secrets.toml 文件中读取 Tushare API Token
 tushare_token = st.secrets["api_keys"]["tushare_token"]
@@ -30,8 +31,10 @@ def save_to_txt(stock_codes, filename):
             file.write('\n'.join(stock_codes))
 
         st.success(f"股票代码已成功保存到文件：{output_file}")
+        return output_file
     except Exception as e:
         st.error(f"保存文件失败: {e}")
+        return None
 
 
 def fetch_themes(pro, ts_codes):
@@ -264,17 +267,14 @@ def run_analysis(token):
 
 def display_results(results):
     st.header(f"（{results['recent_date']}）平均成功率与打板股票")
-    # 使用 to_html(index=False) 输出 HTML 表格，隐藏序号
     html_result = results["result_df"].to_html(index=False)
     st.markdown(html_result, unsafe_allow_html=True)
 
     st.header("每日连板晋级率")
-    # 表格样式：最小宽度 180px，文本右对齐
     html_daily = results["daily_rates_df"].style.hide(axis="index").set_table_styles([
         {'selector': 'th', 'props': [('min-width', '190px'), ('text-align', 'right')]},
         {'selector': 'td', 'props': [('min-width', '190px'), ('text-align', 'right')]}
     ]).to_html()
-
     st.markdown(html_daily, unsafe_allow_html=True)
 
     st.header("涨停板股票数据")
@@ -285,8 +285,13 @@ def display_results(results):
     st.markdown(html_stocks, unsafe_allow_html=True)
 
     st.info(f"最新交易日（{results['recent_date']}）的股票数量: {len(results['recent_date_stocks'])}")
-    desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
-    save_to_txt(results["recent_date_stocks"], os.path.join(desktop_path, "涨停板.txt"))
+    # 保存最新交易日股票代码到文件，保存到 'date/涨停板.txt'
+    file_path = save_to_txt(results["recent_date_stocks"], "涨停板.txt")
+    # 调用 Git 更新：若文件保存成功，则更新 Git
+    if file_path and os.path.exists(file_path):
+        git_update(file_path, update_mode="update")
+        git_push(branch="main")
+
 
 def main():
     st.title("股票连板数据分析")
@@ -296,20 +301,16 @@ def main():
     result_key = "stock_analysis_result"
     if result_key in st.session_state:
         st.write("加载缓存数据...")
-        # 使用缓存数据
         results = st.session_state[result_key]
         display_results(results)
         return
 
-
-    # 如果没有缓存，则运行分析
     if st.button("开始分析"):
         with st.spinner("正在分析，请稍候..."):
             results = run_analysis(tushare_token)
         if "error" in results:
             st.error(results["error"])
         else:
-            # 缓存分析结果
             st.session_state[result_key] = results
             display_results(results)
 
