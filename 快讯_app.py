@@ -5,7 +5,6 @@ import time
 import logging
 from datetime import datetime
 import streamlit as st
-from git_utils import git_update, git_push  # 导入 Git 更新函数
 
 # 设置日志记录
 logging.basicConfig(
@@ -202,7 +201,7 @@ def main():
         pro,
         last_datetime=last_datetime,
         limit=1000,
-        calls_per_minute=8  # 限制每分钟最多调用 8 次接口
+        calls_per_minute=8  # 限制每分钟最多调用 10 次接口
     )
 
     if not news_df.empty:
@@ -214,11 +213,6 @@ def main():
         if isinstance(latest_datetime, str):
             latest_datetime = datetime.strptime(latest_datetime, '%Y-%m-%d %H:%M:%S')
         update_cache(CACHE_FILE, latest_datetime)
-
-        # 调用 Git 更新：如果 NEWS_FILE 存在，则更新到 Git 仓库
-        if os.path.exists(NEWS_FILE):
-            git_update(NEWS_FILE, update_mode="update")
-            git_push(branch="main")
     else:
         st.info("没有新数据需要保存。")
 
