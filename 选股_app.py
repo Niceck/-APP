@@ -9,7 +9,7 @@ if "selected_module" not in st.session_state:
     st.session_state["selected_module"] = None
 
 # 定义模块分组
-update_modules = ["游资查询", , "董秘查询", "新闻筛选", "题材及成分股查询"]
+update_modules = ["游资查询", "董秘查询", "新闻筛选", "题材及成分股查询"]
 analysis_modules = ["评分系统"]
 query_modules = ["更新题材池", "更新涨停池", "更新超买池",
     "更新游资池", "更新调研池", "更新扣非池",
