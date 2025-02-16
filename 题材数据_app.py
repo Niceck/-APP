@@ -298,21 +298,29 @@ def main():
         display_table(df_filtered_z, "近期最强题材")
         display_table(df_filtered_up, "近期升温题材")
 
-        # ---------------- 获取所有题材对应的成分股，写入文件 ----------------
-        all_stock_codes = set()
-        for theme in pd.concat([df_filtered_z, df_filtered_up]).drop_duplicates(subset=['ts_code'])['ts_code']:
-            comps = get_component_stocks(theme, [latest_date])
-            all_stock_codes.update(comps)
-        st.write(f"成分股总数: {len(all_stock_codes)}")
-        output_folder = "date"
-        os.makedirs(output_folder, exist_ok=True)
-        output_file = os.path.join(output_folder, '成分股.txt')
-        if os.path.exists(output_file):
-            os.remove(output_file)
-        with open(output_file, 'w', encoding='utf-8') as f:
-            for code in sorted(all_stock_codes):
-                f.write(f"{code}\n")
-        st.success(f"成分股文件已保存至：{output_file}")
+    # ---------------- 获取所有题材对应的成分股，写入文件 ----------------
+    all_stock_codes = set()
+    for theme in pd.concat([df_filtered_z, df_filtered_up]).drop_duplicates(subset=['ts_code'])['ts_code']:
+        comps = get_component_stocks(theme, [latest_date])
+        all_stock_codes.update(comps)
+    st.write(f"成分股总数: {len(all_stock_codes)}")
+    
+    output_folder = "date"
+    os.makedirs(output_folder, exist_ok=True)
+    output_file = os.path.join(output_folder, '成分股.txt')
+    
+    if os.path.exists(output_file):
+        os.remove(output_file)
+    
+    with open(output_file, 'w', encoding='utf-8') as f:
+        for code in sorted(all_stock_codes):
+            f.write(f"{code}\n")
+    
+    st.success(f"成分股文件已保存至：{output_file}")
+    
+    # 返回保存的文件路径以便主脚本调用 Git 更新
+    return output_file
+
 
     except Exception as e:
         logging.error(f"执行过程中出错: {e}")
