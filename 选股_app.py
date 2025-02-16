@@ -10,7 +10,7 @@ if "selected_module" not in st.session_state:
     st.session_state["selected_module"] = None
 
 # 定义模块分组
-update_modules = ["游资查询", "查询数据2"]
+update_modules = ["游资查询", "题材成分股"]
 analysis_modules = ["评分系统", "新闻筛选"]
 query_modules = ["更新题材池", "更新涨停池", "更新超买池",
     "更新游资池", "更新调研池", "更新扣非池",
@@ -51,7 +51,7 @@ module_map = {
     "更新新闻快讯": "快讯_app",
     "更新新闻联播": "联播_app",
     "更新调研池": "调研_app",
-    "查询数据1": "查询数据1_app",  # 根据实际模块文件调整映射名称
+    "题材成分股": "题材成分股",  # 根据实际模块文件调整映射名称
     "查询数据2": "查询数据2_app"   # 根据实际模块文件调整映射名称
 }
 
