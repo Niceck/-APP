@@ -24,7 +24,6 @@ pro = ts.pro_api()
 
 
 # ==================== 工具函数 ====================
-
 def get_last_n_trade_dates(n=10):
     """
     获取最近 n 个交易日列表，返回形如 ['20250109', '20250108', …]
@@ -216,17 +215,30 @@ def format_number(x):
         return x
 
 
-def display_table(df, title):
+def display_table_alternative(df, title):
     """
-    在 Streamlit 页面上显示 DataFrame 表格，
-    对所有数值型数据按要求格式化。
+    在 Streamlit 页面上以交互式表格样式显示 DataFrame，
+    对所有数值型数据进行格式化，
+    删除不需要的平均值列，
+    并调整索引从 1 开始显示。
     """
     st.subheader(title)
+
+    # 删除不需要的平均值列（如果存在）
+    drop_cols = ['avg_z_t_num_5', 'avg_z_t_num_10', 'avg_up_num_5', 'avg_up_num_10']
+    df = df.drop(columns=drop_cols, errors='ignore')
+
+    # 复制并格式化数值型数据
     df_formatted = df.copy()
     for col in df_formatted.columns:
         if pd.api.types.is_numeric_dtype(df_formatted[col]):
-            df_formatted[col] = df_formatted[col].map(format_number)
-    st.table(df_formatted.reset_index(drop=True))
+            df_formatted[col] = df_formatted[col].apply(format_number)
+
+    # 重置索引，使索引从 1 开始
+    df_formatted.index = range(1, len(df_formatted) + 1)
+
+    # 使用交互式数据框展示，支持排序和搜索
+    st.dataframe(df_formatted, use_container_width=True)
 
 
 # ==================== 主函数 ====================
@@ -288,15 +300,18 @@ def main():
         df_filtered_z = compute_hot_money_counts_for_themes_once(df_filtered_z, latest_date, fallback_date)
         df_filtered_up = compute_hot_money_counts_for_themes_once(df_filtered_up, latest_date, fallback_date)
 
-        # ---------------- 调整列顺序 ----------------
-        cols = ['trade_date', 'ts_code', 'name', ' 游资数', 'z_t_num', 'up_num',
-                'avg_z_t_num_5', 'avg_z_t_num_10', 'avg_up_num_5', 'avg_up_num_10']
-        df_filtered_z = df_filtered_z[cols]
-        df_filtered_up = df_filtered_up[cols]
+        # ---------------- 调整列顺序，只保留需要显示的列 ----------------
+        cols_display = ['trade_date', 'ts_code', 'name', ' 游资数', 'z_t_num', 'up_num']
+        df_filtered_z_display = df_filtered_z[cols_display].reset_index(drop=True)
+        df_filtered_up_display = df_filtered_up[cols_display].reset_index(drop=True)
 
-        # ---------------- 在页面上显示结果 ----------------
-        display_table(df_filtered_z, "近期最强题材")
-        display_table(df_filtered_up, "近期升温题材")
+        # 修改索引从 1 开始
+        df_filtered_z_display.index = df_filtered_z_display.index + 1
+        df_filtered_up_display.index = df_filtered_up_display.index + 1
+
+        # ---------------- 在页面上显示结果（交互式表格样式） ----------------
+        display_table_alternative(df_filtered_z_display, "近期最强题材")
+        display_table_alternative(df_filtered_up_display, "近期升温题材")
 
         # ---------------- 获取所有题材对应的成分股，写入文件 ----------------
         all_stock_codes = set()
