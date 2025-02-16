@@ -11,8 +11,10 @@ import time  # 用于控制API调用频率
 logging.basicConfig(filename='error.log', level=logging.ERROR,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-# 设置您的 Tushare API Token
-ts.set_token('fdc47a6452a744f01bc6b486c5f53d7a04d6e321124cbd0f766bba30')  # TODO: 替换为自己的 Token
+tushare_token = st.secrets["api_keys"]["tushare_token"]
+
+# 设置 Tushare API Token
+ts.set_token(tushare_token)
 pro = ts.pro_api()
 
 
