@@ -4,13 +4,12 @@ import importlib
 # 设置页面配置（必须放在所有 Streamlit 命令的最前面）
 st.set_page_config(page_title="Stock Analysis App", layout="wide")
 
-
 # 初始化 session_state 中的 selected_module
 if "selected_module" not in st.session_state:
     st.session_state["selected_module"] = None
 
 # 定义模块分组
-update_modules = ["游资查询", "题材成分股"]
+update_modules = ["游资查询", "题材及成分股查询", "董秘查询"]
 analysis_modules = ["评分系统", "新闻筛选"]
 query_modules = ["更新题材池", "更新涨停池", "更新超买池",
     "更新游资池", "更新调研池", "更新扣非池",
@@ -51,8 +50,8 @@ module_map = {
     "更新新闻快讯": "快讯_app",
     "更新新闻联播": "联播_app",
     "更新调研池": "调研_app",
-    "题材成分股": "题材成分股",  # 根据实际模块文件调整映射名称
-    "查询数据2": "查询数据2_app"   # 根据实际模块文件调整映射名称
+    "题材及成分股查询": "题材及成分股查询",  # 根据实际模块文件调整映射名称
+    "董秘查询": "董秘查询"   # 根据实际模块文件调整映射名称
 }
 
 # 获取当前选中的模块
