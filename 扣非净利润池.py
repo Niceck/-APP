@@ -6,8 +6,10 @@ import streamlit as st
 from tqdm import tqdm
 from ratelimit import limits, sleep_and_retry
 
-# =============== 1. 初始化 Tushare Pro 接口 ===============
-pro = ts.pro_api('fdc47a6452a744f01bc6b486c5f53d7a04d6e321124cbd0f766bba30')  # 替换为你的 Tushare Token
+# 从 secrets.toml 中读取 Tushare API Token
+tushare_token = st.secrets.get("api_keys", {}).get("tushare_token", "your_default_token_here")
+ts.set_token(tushare_token)
+pro = ts.pro_api()
 
 # =============== 2. 获取所有正常上市 A 股股票列表并过滤 ST ===============
 stock_list = pro.stock_basic(
