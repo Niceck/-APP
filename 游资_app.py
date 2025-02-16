@@ -4,29 +4,26 @@ import os
 import streamlit as st
 import base64
 
-
-# 将本地图片转换为 base64 编码
+# 将本地图片转换为 base64 编码（可选）
 image_path = "yinhe.png"
-with open(image_path, "rb") as image_file:
-    encoded_image = base64.b64encode(image_file.read()).decode()
-
+if os.path.exists(image_path):
+    with open(image_path, "rb") as image_file:
+        encoded_image = base64.b64encode(image_file.read()).decode()
+    st.image(image_path, caption="银河图片", use_column_width=True)
 
 # 显示标题
 st.title("恢恢游资库")
 
-# 你可以在这里继续添加其他内容，例如数据展示、图表等
-
-# 设置 Pandas 显示选项，确保 '接受机构' 列完全显示
+# 设置 Pandas 显示选项，确保长文本列完整显示
 pd.set_option('display.max_colwidth', None)
 
-# 从 secrets.toml 文件中读取 Tushare API Token，使用默认值避免 KeyError
+# 从 secrets.toml 文件中读取 Tushare API Token
 tushare_token = st.secrets.get("api_keys", {}).get("tushare_token", "your_default_token_here")
-
 # 设置 Tushare API Token
 ts.set_token(tushare_token)
 pro = ts.pro_api()
 
-# 拉取数据
+# 拉取数据函数
 def fetch_data(trade_date, ts_code, hm_name, start_date, end_date, limit, offset=0):
     df = pro.hm_detail(
         trade_date=trade_date,
@@ -41,17 +38,17 @@ def fetch_data(trade_date, ts_code, hm_name, start_date, end_date, limit, offset
     return df
 
 def main():
-    # 将参数设置移到主页
-    st.subheader("参数设置")
-    trade_date = st.text_input("交易日期", "")
-    ts_code = st.text_input("股票代码", "")
-    hm_name = st.text_input("游资名称", "")
-    start_date = st.text_input("开始日期", "")
-    end_date = st.text_input("结束日期", "")
-    limit = st.number_input("查询的最大数据条数", min_value=1, value=100)  # 用户输入 limit
+    # 参数设置放在左侧栏
+    st.sidebar.header("参数设置")
+    trade_date = st.sidebar.text_input("交易日期", "")
+    ts_code = st.sidebar.text_input("股票代码", "")
+    hm_name = st.sidebar.text_input("游资名称", "")
+    start_date = st.sidebar.text_input("开始日期", "")
+    end_date = st.sidebar.text_input("结束日期", "")
+    limit = st.sidebar.number_input("查询的最大数据条数", min_value=1, value=100)
 
-    # 查询按钮
-    if st.button('查询数据'):
+    # 查询按钮放在左侧栏
+    if st.sidebar.button('查询数据'):
         # 拉取数据
         df = fetch_data(trade_date, ts_code, hm_name, start_date, end_date, limit)
 
@@ -75,10 +72,9 @@ def main():
                 'hm_name': '游资名称'
             }, inplace=True)
 
-            # 显示数据表格
+            # 显示数据表格，隐藏索引（或可根据需求显示）
             st.write("### 游资数据")
             st.dataframe(df, use_container_width=True, hide_index=True)
 
-# 确保脚本以 main() 函数执行
 if __name__ == "__main__":
     main()
