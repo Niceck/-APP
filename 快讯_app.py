@@ -183,7 +183,7 @@ def fetch_news_data(pro, last_datetime=None, limit=1000, calls_per_minute=10):
 
 
 def main():
-    st.title("Tushare 新闻数据拉取与保存")
+    st.title("新闻数据拉取与保存")
 
     try:
         pro = ts.pro_api(tushare_token)
