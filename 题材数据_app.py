@@ -220,7 +220,7 @@ def display_table_alternative(df, title):
     在 Streamlit 页面上以交互式表格样式显示 DataFrame，
     对所有数值型数据进行格式化，
     删除不需要的平均值列，
-    并调整索引从 1 开始显示。
+    并调整索引从 1 开始显示，同时将表头转换为中文。
     """
     st.subheader(title)
 
@@ -236,6 +236,17 @@ def display_table_alternative(df, title):
 
     # 重置索引，使索引从 1 开始
     df_formatted.index = range(1, len(df_formatted) + 1)
+
+    # 定义中文表头映射
+    col_map = {
+        "trade_date": "交易日期",
+        "ts_code": "题材代码",
+        "name": "题材名称",
+        " 游资数": "游资数",
+        "z_t_num": "涨停数",
+        "up_num": "升温数"
+    }
+    df_formatted = df_formatted.rename(columns=col_map)
 
     # 使用交互式数据框展示，支持排序和搜索
     st.dataframe(df_formatted, use_container_width=True)
@@ -309,7 +320,7 @@ def main():
         df_filtered_z_display.index = df_filtered_z_display.index + 1
         df_filtered_up_display.index = df_filtered_up_display.index + 1
 
-        # ---------------- 在页面上显示结果（交互式表格样式） ----------------
+        # ---------------- 在页面上显示结果（交互式表格样式，中文表头） ----------------
         display_table_alternative(df_filtered_z_display, "近期最强题材")
         display_table_alternative(df_filtered_up_display, "近期升温题材")
 
