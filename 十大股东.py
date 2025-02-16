@@ -2,8 +2,12 @@ import tushare as ts
 import time
 from tqdm import tqdm
 
-# 初始化 Tushare pro 接口，请替换为您的 API Token
-pro = ts.pro_api('fdc47a6452a744f01bc6b486c5f53d7a04d6e321124cbd0f766bba30')
+tushare_token = st.secrets["api_keys"]["tushare_token"]
+
+# 设置 Tushare API Token
+ts.set_token(tushare_token)
+pro = ts.pro_api()
+
 
 # 指定保存路径，保存在现有的 date 文件夹中（如果文件已存在，则覆盖）
 file_path = './date/股东.txt'
