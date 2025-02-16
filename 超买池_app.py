@@ -141,6 +141,7 @@ def main():
     st.write("### 选股结果")
     st.dataframe(result_df, use_container_width=True)
 
+
     # 保存股票代码到本地文件，保存路径为 "date/RSI选股.txt"（相对路径）
     save_dir = "date"
     if not os.path.exists(save_dir):
@@ -151,6 +152,8 @@ def main():
             f.write(f"{code}\n")
     st.success(f"选股结果已保存到：{save_path}")
 
+# 返回文件路径供主脚本调用 Git 更新
+return save_path
 
 if __name__ == "__main__":
     main()
