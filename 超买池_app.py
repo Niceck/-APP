@@ -152,8 +152,8 @@ def main():
             f.write(f"{code}\n")
     st.success(f"选股结果已保存到：{save_path}")
 
-# 返回文件路径供主脚本调用 Git 更新
-return save_path
+    # 返回文件路径供主脚本调用 Git 更新
+    return save_path
 
 if __name__ == "__main__":
     main()
