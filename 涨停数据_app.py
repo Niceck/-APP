@@ -262,31 +262,50 @@ def run_analysis(token):
     }
 
 
+def set_table_css():
+    """
+    注入自定义 CSS，用于手动设置 st.dataframe 显示时的列宽（此处设置单元格最小和最大宽度）
+    """
+    st.markdown(
+        """
+        <style>
+        /* 针对 st.dataframe 内部表格单元格设置最小和最大宽度 */
+        div[data-testid="stDataFrameContainer"] table td {
+            min-width: 150px;
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        div[data-testid="stDataFrameContainer"] table th {
+            min-width: 150px;
+            max-width: 300px;
+            text-align: center;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+
 def display_results(results):
+    # 首先注入自定义 CSS 样式
+    set_table_css()
+
     st.header(f"（{results['recent_date']}）平均成功率与打板股票")
-    # 使用 to_html(index=False) 输出 HTML 表格，隐藏序号
-    html_result = results["result_df"].to_html(index=False)
-    st.markdown(html_result, unsafe_allow_html=True)
+    # 使用 st.dataframe 显示交互式表格（支持排序、搜索），手动设置表格宽度（可通过浏览器横向滚动）
+    st.dataframe(results["result_df"], use_container_width=True)
 
     st.header("每日连板晋级率")
-    # 表格样式：最小宽度 180px，文本右对齐
-    html_daily = results["daily_rates_df"].style.hide(axis="index").set_table_styles([
-        {'selector': 'th', 'props': [('min-width', '190px'), ('text-align', 'right')]},
-        {'selector': 'td', 'props': [('min-width', '190px'), ('text-align', 'right')]}
-    ]).to_html()
-
-    st.markdown(html_daily, unsafe_allow_html=True)
+    st.dataframe(results["daily_rates_df"], use_container_width=True)
 
     st.header("涨停板股票数据")
-    html_stocks = results["stocks_df"].style.hide(axis="index").set_table_styles([
-        {'selector': 'th', 'props': [('min-width', '300px')]},
-        {'selector': 'td', 'props': [('min-width', '310px')]}
-    ]).to_html()
-    st.markdown(html_stocks, unsafe_allow_html=True)
+    st.dataframe(results["stocks_df"], use_container_width=True)
 
     st.info(f"最新交易日（{results['recent_date']}）的股票数量: {len(results['recent_date_stocks'])}")
     desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
     save_to_txt(results["recent_date_stocks"], os.path.join(desktop_path, "涨停板.txt"))
+
 
 def main():
     st.title("股票连板数据分析")
@@ -300,7 +319,6 @@ def main():
         results = st.session_state[result_key]
         display_results(results)
         return
-
 
     # 如果没有缓存，则运行分析
     if st.button("开始分析"):
