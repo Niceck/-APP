@@ -10,23 +10,9 @@ image_path = "yinhe.png"
 with open(image_path, "rb") as image_file:
     encoded_image = base64.b64encode(image_file.read()).decode()
 
-# CSS 设置背景图片
-st.markdown(
-    f"""
-    <style>
-    .stApp {{
-        background-image: url("data:image/png;base64,{encoded_image}");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        min-height: 100vh;
-    }}
-    </style>
-    """, unsafe_allow_html=True
-)
 
 # 显示标题
-st.title("恢恢数据库")
+st.title("恢恢游资库")
 
 # 你可以在这里继续添加其他内容，例如数据展示、图表等
 
