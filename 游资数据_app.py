@@ -7,6 +7,7 @@ import sys
 import time
 from tqdm import tqdm  # tqdm 在后台调用，界面上使用 Streamlit 的进度条
 import streamlit as st
+from git_utils import git_update, git_push  # 导入 Git 操作函数
 
 # ------------------- 全局设置 -------------------
 # 从 secrets.toml 文件中读取 Tushare API Token
@@ -73,6 +74,7 @@ def save_selected_stocks(selected_ts_codes, file_name):
         logging.info(f"选定的股票代码已成功保存到: {file_path}")
     except Exception as e:
         logging.error(f"保存选定股票代码时出错: {e}")
+
 
 def get_trade_calendar(required_days):
     """
@@ -271,12 +273,10 @@ def main():
 
         # 8. 保存结果并提供下载
         file_name = "游资.txt"
-        # 设置文件路径为相对路径的 'date' 文件夹
         file_path = os.path.join("date", file_name)
         final_ts_codes = filtered_stocks['ts_code'].tolist()
 
         try:
-            # 确保 'date' 文件夹存在
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             with open(file_path, "w", encoding='utf-8') as file:
                 for ts_code in final_ts_codes:
@@ -285,6 +285,11 @@ def main():
         except Exception as e:
             logging.error(f"保存选定股票代码时出错: {e}")
             st.error("保存文件时出错。")
+
+        # 8.1 调用 Git 更新：若文件存在则更新到 Git
+        if os.path.exists(file_path):
+            git_update(file_path, update_mode="update")
+            git_push(branch="main")
 
         try:
             with open(file_path, "r", encoding='utf-8') as f:
