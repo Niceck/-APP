@@ -6,32 +6,29 @@ import logging
 import os
 import streamlit as st
 
-# ====================  全局设置  ====================
-
+# ==================== 全局设置 ====================
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 1000)
 pd.set_option('display.colheader_justify', 'center')
 
 logging.basicConfig(
     filename='script.log',
-    level=logging.INFO,  # 设置为 INFO 级别
+    level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# 从 secrets.toml 文件中读取 Tushare API Token
+# 从 secrets.toml 中读取 Tushare API Token
 tushare_token = st.secrets["api_keys"]["tushare_token"]
-
-# 设置 Tushare API Token
 ts.set_token(tushare_token)
 pro = ts.pro_api()
 
 
-# ====================  工具函数  ====================
-
-
+# ==================== 工具函数 ====================
 
 def get_last_n_trade_dates(n=10):
-    """获取最近的 n 个交易日列表，返回形如 ['20250109','20250108', …]"""
+    """
+    获取最近 n 个交易日列表，返回形如 ['20250109', '20250108', …]
+    """
     try:
         today = dt.datetime.today()
         today_str = today.strftime('%Y%m%d')
@@ -40,8 +37,7 @@ def get_last_n_trade_dates(n=10):
             logging.error("获取交易日历失败，返回空数据")
             return []
         trade_cal = trade_cal.sort_values(by='cal_date', ascending=False)
-        trade_dates = trade_cal['cal_date'].head(n).tolist()
-        return trade_dates
+        return trade_cal['cal_date'].head(n).tolist()
     except Exception as e:
         logging.error(f"获取交易日历时出错: {e}")
         return []
@@ -50,12 +46,12 @@ def get_last_n_trade_dates(n=10):
 def get_themes_for_date(trade_date):
     """
     获取指定交易日的题材数据，字段包括：
-        trade_date, ts_code, name, z_t_num, up_num
+      trade_date, ts_code, name, z_t_num, up_num
     返回 DataFrame
     """
     try:
         logging.info(f"Fetching themes for date: {trade_date}")
-        df_themes = pro.kpl_concept(
+        df = pro.kpl_concept(
             trade_date=trade_date,
             ts_code="",
             name="",
@@ -63,95 +59,62 @@ def get_themes_for_date(trade_date):
             offset="",
             fields=["trade_date", "ts_code", "name", "z_t_num", "up_num"]
         )
-        if df_themes.empty:
+        if df.empty:
             logging.warning(f"当天({trade_date}) kpl_concept 接口返回空")
             return pd.DataFrame()
-
         for col in ['z_t_num', 'up_num']:
-            if col not in df_themes.columns:
+            if col not in df.columns:
                 logging.error(f"'{col}' 不在题材数据中")
                 return pd.DataFrame()
-            df_themes[col] = pd.to_numeric(df_themes[col], errors='coerce').fillna(0)
-
-        return df_themes
-
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+        return df
     except Exception as e:
         logging.error(f"Error fetching themes for date {trade_date}: {e}")
         return pd.DataFrame()
 
 
-def calculate_avg(df_all_themes):
+def calculate_avg(df_all):
     """
-    计算5日和10日的平均涨停数、升温值
-    返回包含：
-        [ts_code, avg_z_t_num_5, avg_z_t_num_10, avg_up_num_5, avg_up_num_10]
-    的 DataFrame
+    计算5日和10日的平均涨停数、升温值，
+    返回 DataFrame 包含：ts_code, avg_z_t_num_5, avg_z_t_num_10, avg_up_num_5, avg_up_num_10
     """
     try:
-        df_all_themes = df_all_themes.sort_values(by=['ts_code', 'trade_date'])
-        df_all_themes['avg_z_t_num_5'] = df_all_themes.groupby('ts_code')['z_t_num'].transform(
+        df_all = df_all.sort_values(by=['ts_code', 'trade_date'])
+        df_all['avg_z_t_num_5'] = df_all.groupby('ts_code')['z_t_num'].transform(
             lambda x: x.rolling(window=5, min_periods=1).mean()
         )
-        df_all_themes['avg_z_t_num_10'] = df_all_themes.groupby('ts_code')['z_t_num'].transform(
+        df_all['avg_z_t_num_10'] = df_all.groupby('ts_code')['z_t_num'].transform(
             lambda x: x.rolling(window=10, min_periods=1).mean()
         )
-        df_all_themes['avg_up_num_5'] = df_all_themes.groupby('ts_code')['up_num'].transform(
+        df_all['avg_up_num_5'] = df_all.groupby('ts_code')['up_num'].transform(
             lambda x: x.rolling(window=5, min_periods=1).mean()
         )
-        df_all_themes['avg_up_num_10'] = df_all_themes.groupby('ts_code')['up_num'].transform(
+        df_all['avg_up_num_10'] = df_all.groupby('ts_code')['up_num'].transform(
             lambda x: x.rolling(window=10, min_periods=1).mean()
         )
-
-        df_avg = df_all_themes.groupby('ts_code').tail(1)
-        df_avg = df_avg[[
-            'ts_code',
-            'avg_z_t_num_5', 'avg_z_t_num_10',
-            'avg_up_num_5', 'avg_up_num_10'
-        ]]
-        return df_avg
+        df_avg = df_all.groupby('ts_code').tail(1)
+        return df_avg[['ts_code', 'avg_z_t_num_5', 'avg_z_t_num_10', 'avg_up_num_5', 'avg_up_num_10']]
     except Exception as e:
         logging.error(f"Error calculating averages: {e}")
         return pd.DataFrame()
 
 
-def filter_themes(df_latest_themes, df_avg):
+def filter_themes(df_latest, df_avg):
     """
-    筛选“近期最强题材”和“近期升温题材”。
-    参数：
-        df_latest_themes: 最新交易日所有题材数据 (含列 ts_code, name, z_t_num, up_num)
-        df_avg: 各题材的 5日/10日 均值 (avg_z_t_num_5, avg_z_t_num_10, avg_up_num_5, avg_up_num_10)
-    返回：df_filtered_z, df_filtered_up 两个 DataFrame
+    筛选“近期最强题材”和“近期升温题材”
+    筛选条件：
+      - 近期最强：当天涨停数 > 5日均值 且 5日均值 > 10日均值
+      - 近期升温：当天升温值 > 5日均值 且 5日均值 > 10日均值
+    返回两个 DataFrame（保留 trade_date 字段，用于后续匹配成分股）
     """
     try:
-        df_combined = pd.merge(df_latest_themes, df_avg, on='ts_code', how='left')
-
-        # 近期最强
-        df_filtered_z = df_combined[
-            (df_combined['z_t_num'] > df_combined['avg_z_t_num_5']) &
-            (df_combined['avg_z_t_num_5'] > df_combined['avg_z_t_num_10'])
-            ].sort_values(by='z_t_num', ascending=False).head(5).reset_index(drop=True)
-
-        # 近期升温
-        df_filtered_up = df_combined[
-            (df_combined['up_num'] > df_combined['avg_up_num_5']) &
-            (df_combined['avg_up_num_5'] > df_combined['avg_up_num_10'])
-            ].sort_values(by='up_num', ascending=False).head(5).reset_index(drop=True)
-
-        # 重命名成中文
-        rename_dict = {
-            'ts_code': ' 题材代码',
-            'name': ' 题材名称',
-            'z_t_num': '   涨停数',
-            'up_num': '   升温值',
-            'avg_z_t_num_5': 'ma5涨停',
-            'avg_z_t_num_10': 'ma10涨停',
-            'avg_up_num_5': 'ma5升温',
-            'avg_up_num_10': 'ma10升温'
-        }
-        df_filtered_z = df_filtered_z.rename(columns=rename_dict)
-        df_filtered_up = df_filtered_up.rename(columns=rename_dict)
-
-        return df_filtered_z, df_filtered_up
+        df = pd.merge(df_latest, df_avg, on='ts_code', how='left')
+        df_strong = df[(df['z_t_num'] > df['avg_z_t_num_5']) &
+                       (df['avg_z_t_num_5'] > df['avg_z_t_num_10'])]
+        df_rising = df[(df['up_num'] > df['avg_up_num_5']) &
+                       (df['avg_up_num_5'] > df['avg_up_num_10'])]
+        return df_strong.sort_values(by='z_t_num', ascending=False).head(5).reset_index(drop=True), \
+            df_rising.sort_values(by='up_num', ascending=False).head(5).reset_index(drop=True)
     except Exception as e:
         logging.error(f"Error filtering themes: {e}")
         return pd.DataFrame(), pd.DataFrame()
@@ -159,222 +122,202 @@ def filter_themes(df_latest_themes, df_avg):
 
 def get_component_stocks(theme_ts_code, trade_dates):
     """
-    获取某个题材在 trade_dates（降序）中最新有数据的成分股列表。
-    如果第一个交易日没查到数据，会自动往后找，直到找到为止。
-
-    注意：此处的字段已改为 con_code。
+    获取指定题材在给定日期列表中（按顺序）有数据的成分股（字段 con_code）。
+    如果第一个日期无数据，则尝试后续日期。
     """
     try:
-        for trade_date in trade_dates:
-            df_components = pro.kpl_concept_cons(
+        for t_date in trade_dates:
+            df = pro.kpl_concept_cons(
                 ts_code=theme_ts_code,
-                trade_date=trade_date,
+                trade_date=t_date,
                 fields=["con_code"]
             )
-            if not df_components.empty:
-                # 使用 con_code 而不是 cons_code
-                return df_components['con_code'].dropna().unique().tolist()
+            if not df.empty:
+                return df['con_code'].dropna().unique().tolist()
         return []
     except Exception as e:
         logging.error(f"Error fetching component stocks for theme {theme_ts_code}: {e}")
         return []
 
 
-def display_table(df, title):
+def get_all_hot_money_details(trade_date, fallback_date=None):
     """
-    在 Streamlit 页面上显示 DataFrame 表格
+    一次性调用 pro.hm_detail，查询指定交易日的游资数据（字段 ts_code, hm_name）。
+    若返回空，则使用备用日期。
     """
-    st.subheader(title)
-
-    # 去除索引列并保留1位小数
-    df = df.round(1).reset_index(drop=True)  # 确保应用了四舍五入和去掉索引
-
-    st.table(df)  # 展示最终处理后的表格
-
-
-
-def add_hot_money_count(df, trade_dates, latest_trade_date):
-    """
-    为 df 的每个题材统计去重后的游资数，并写入「 游资数」列。
-    - df: 必须至少包含列 [' 题材代码']
-    - trade_dates: 最近 n 个交易日的列表(降序)
-    - latest_trade_date: 用于统计游资的参考交易日
-    """
-    df[' 游资数'] = 0
-    st.write("开始获取游资数据...")
-    progress_bar = st.progress(0)
-    total = len(df)
-    for i in range(total):
-        row = df.iloc[i]
-        theme_code = row[' 题材代码']
-
-        # 1) 获取该题材的成分股
-        component_stocks = get_component_stocks(theme_code, trade_dates)
-
-        # 2) 汇总该题材所有成分股在 latest_trade_date 出现的游资名称
-        hot_money_names = set()
-        for stock_code in component_stocks:
-            # 每次调接口前，sleep 0.2 秒，保证 1 分钟最多 300 次
-            time.sleep(0.2)
-            df_hm = pro.hm_detail(
-                trade_date=latest_trade_date,
-                ts_code=stock_code,
-                fields=["hm_name", "ts_code"]
-            )
-            if not df_hm.empty:
-                for name in df_hm['hm_name'].dropna().unique():
-                    hot_money_names.add(name)
-
-        # 3) 写回游资数
-        df.at[i, ' 游资数'] = len(hot_money_names)
-        progress_bar.progress((i + 1) / total)
+    df = pro.hm_detail(trade_date=trade_date, fields=["ts_code", "hm_name"])
+    if df.empty and fallback_date:
+        logging.info(f"{trade_date} 无游资数据，改用备用日期 {fallback_date}")
+        df = pro.hm_detail(trade_date=fallback_date, fields=["ts_code", "hm_name"])
     return df
 
 
-# ====================  主函数  ====================
+def compute_hot_money_counts_for_themes_once(df, latest_date, fallback_date=None):
+    """
+    针对传入的题材 DataFrame（均属于最新交易日），统计每个题材的总游资数：
+      1. 对每个题材，先获取其成分股（若最新交易日无数据则用备用日期）；
+      2. 汇总所有题材的成分股，并一次性调用 pro.hm_detail（只传 trade_date）获取游资数据；
+      3. 按股票代码去重其 hm_name 后，对每个题材取其成分股对应的游资名称并集，计数作为该题材的“游资数”。
+    """
+    # 构建题材 -> 成分股 映射
+    theme_to_components = {}
+    for idx, row in df.iterrows():
+        theme_code = row['ts_code']
+        comps = get_component_stocks(theme_code, [latest_date])
+        if not comps and fallback_date:
+            comps = get_component_stocks(theme_code, [fallback_date])
+        theme_to_components[theme_code] = comps
 
+    # 汇总所有成分股（去重）
+    all_components = set()
+    for comps in theme_to_components.values():
+        all_components.update(comps)
+    all_components = list(all_components)
+
+    # 一次性调用 hm_detail 查询所有成分股的游资数据
+    hm_df = get_all_hot_money_details(latest_date, fallback_date)
+    if not hm_df.empty:
+        hm_df = hm_df[hm_df['ts_code'].isin(all_components)]
+
+    # 构建映射：股票代码 -> 去重后的游资名称集合
+    stock_to_hotmoney = {}
+    if not hm_df.empty:
+        for stock, group in hm_df.groupby('ts_code'):
+            stock_to_hotmoney[stock] = set(group['hm_name'].dropna().unique())
+
+    # 对每个题材，取其成分股对应的游资名称并集，计数作为“游资数”
+    theme_hotmoney_count = {}
+    for theme_code, comps in theme_to_components.items():
+        hm_set = set()
+        for comp in comps:
+            if comp in stock_to_hotmoney:
+                hm_set.update(stock_to_hotmoney[comp])
+        theme_hotmoney_count[theme_code] = len(hm_set)
+
+    df[' 游资数'] = df['ts_code'].apply(lambda code: theme_hotmoney_count.get(code, 0))
+    return df
+
+
+def format_number(x):
+    """
+    格式化数值：
+      - 如果数值为整数则不显示小数点（例如 13.0 显示为 "13"）
+      - 否则保留1位小数（例如 14.2）
+    """
+    try:
+        if pd.isna(x):
+            return ""
+        x = float(x)
+        if x.is_integer():
+            return f"{int(x)}"
+        else:
+            return f"{x:.1f}"
+    except Exception:
+        return x
+
+
+def display_table(df, title):
+    """
+    在 Streamlit 页面上显示 DataFrame 表格，
+    对所有数值型数据按要求格式化。
+    """
+    st.subheader(title)
+    df_formatted = df.copy()
+    for col in df_formatted.columns:
+        if pd.api.types.is_numeric_dtype(df_formatted[col]):
+            df_formatted[col] = df_formatted[col].map(format_number)
+    st.table(df_formatted.reset_index(drop=True))
+
+
+# ==================== 主函数 ====================
 def main():
     st.title("题材数据分析")
     st.markdown(
         """
-        分别筛选出“近期最强题材”与“近期升温题材”，
-        并计算每个题材的游资数，同时将各题材对应的成分股写入文件。
+        程序自动获取最新数据，筛选出“近期最强题材”与“近期升温题材”，
+        并统计每个题材参与的总游资数（基于题材成分股）。
+        若最新交易日无游资数据，则使用前一天交易日数据进行查询。
         """
     )
 
-    # 检查是否有缓存的结果
-    result_key = "theme_analysis_result"  # 定义缓存键名
-    if result_key in st.session_state:
-        st.write("加载缓存数据...")
-        # 使用缓存数据
-        result_data = st.session_state[result_key]
-        display_cached_results(result_data)
-        return
+    try:
+        st.info("开始执行，请稍候……")
 
-    if st.button("开始分析"):
-        try:
-            st.info("程序开始执行，请耐心等待……")
+        # ---------------- 获取最近 10 个交易日 ----------------
+        trade_dates = get_last_n_trade_dates(n=10)
+        if not trade_dates:
+            st.error("未能获取有效交易日")
+            return
 
-            # ===================== 文件保存路径设置 =====================
-            output_folder = "date"
-            output_file = os.path.join(output_folder, '成分股.txt')
+        # ---------------- 获取这几天的题材数据 ----------------
+        all_data = []
+        for t_date in trade_dates:
+            df_temp = get_themes_for_date(t_date)
+            if not df_temp.empty:
+                all_data.append(df_temp)
+        if not all_data:
+            st.error("未能获取到题材数据")
+            return
+        df_all = pd.concat(all_data, ignore_index=True)
+        logging.info(f"合并题材数据行数: {len(df_all)}")
 
-            # 打开文件并写入内容，自动覆盖已有的文件
-            with open(output_file, "w", encoding="utf-8") as f:
-                # 这里可以添加文件的写入逻辑
-                f.write("你的文件内容")
-            logging.info(f"文件已保存到: {output_file}")
+        # ---------------- 取最新交易日数据 ----------------
+        latest_date = df_all['trade_date'].max()
+        df_latest = df_all[df_all['trade_date'] == latest_date][['trade_date', 'ts_code', 'name', 'z_t_num', 'up_num']]
+        logging.info(f"最新交易日: {latest_date}")
 
-            # ===================== 获取最近 10 个交易日 =====================
-            trade_dates = get_last_n_trade_dates(n=10)
-            if not trade_dates:
-                st.error("没有获取到有效的交易日期")
-                logging.error("没有获取到有效的交易日期")
-                return
+        # 备用日期：若最新交易日无游资数据，则用排序后第二个日期
+        fallback_date = None
+        trade_dates_sorted = sorted(trade_dates, reverse=True)
+        if len(trade_dates_sorted) >= 2:
+            fallback_date = trade_dates_sorted[1]
 
-            # ===================== 获取每日题材数据 =====================
-            all_themes_data = []
-            progress_bar_themes = st.progress(0)
-            for i, trade_date in enumerate(trade_dates):
-                df_themes = get_themes_for_date(trade_date)
-                if not df_themes.empty:
-                    all_themes_data.append(df_themes)
-                progress_bar_themes.progress((i + 1) / len(trade_dates))
-            if not all_themes_data:
-                st.error("没有获取到任何题材数据")
-                logging.error("没有获取到任何题材数据")
-                return
+        # ---------------- 计算均值（基于最近 10 天数据） ----------------
+        df_avg = calculate_avg(df_all)
+        if df_avg.empty:
+            st.error("计算均值失败")
+            return
 
-            # ===================== 合并数据、计算均值 =====================
-            df_all_themes = pd.concat(all_themes_data, ignore_index=True)
-            logging.info(f"合并后总数据行数: {len(df_all_themes)}")
+        # ---------------- 筛选题材 ----------------
+        df_filtered_z, df_filtered_up = filter_themes(df_latest, df_avg)
+        if df_filtered_z.empty and df_filtered_up.empty:
+            st.warning("未筛选出符合条件的题材")
+            return
 
-            df_avg = calculate_avg(df_all_themes)
-            if df_avg.empty:
-                st.error("计算平均值时出错或结果为空")
-                logging.error("计算平均值时出错或结果为空")
-                return
+        # ---------------- 统计游资数据（一次性调用 hm_detail） ----------------
+        df_filtered_z = compute_hot_money_counts_for_themes_once(df_filtered_z, latest_date, fallback_date)
+        df_filtered_up = compute_hot_money_counts_for_themes_once(df_filtered_up, latest_date, fallback_date)
 
-            # ===================== 获取最新交易日的题材数据 =====================
-            latest_trade_date = df_all_themes['trade_date'].max()
-            logging.info(f"Latest trade date: {latest_trade_date}")
+        # ---------------- 调整列顺序 ----------------
+        cols = ['trade_date', 'ts_code', 'name', ' 游资数', 'z_t_num', 'up_num',
+                'avg_z_t_num_5', 'avg_z_t_num_10', 'avg_up_num_5', 'avg_up_num_10']
+        df_filtered_z = df_filtered_z[cols]
+        df_filtered_up = df_filtered_up[cols]
 
-            df_latest_themes = df_all_themes[
-                df_all_themes['trade_date'] == latest_trade_date
-                ][['ts_code', 'name', 'z_t_num', 'up_num']]
+        # ---------------- 在页面上显示结果 ----------------
+        display_table(df_filtered_z, "近期最强题材")
+        display_table(df_filtered_up, "近期升温题材")
 
-            # ===================== 筛选题材 =====================
-            df_filtered_z, df_filtered_up = filter_themes(df_latest_themes, df_avg)
-            if df_filtered_z.empty and df_filtered_up.empty:
-                st.warning("没有符合条件的题材被筛选出来")
-                logging.warning("没有符合条件的题材被筛选出来")
-                return
+        # ---------------- 获取所有题材对应的成分股，写入文件 ----------------
+        all_stock_codes = set()
+        for theme in pd.concat([df_filtered_z, df_filtered_up]).drop_duplicates(subset=['ts_code'])['ts_code']:
+            comps = get_component_stocks(theme, [latest_date])
+            all_stock_codes.update(comps)
+        st.write(f"成分股总数: {len(all_stock_codes)}")
+        output_folder = "date"
+        os.makedirs(output_folder, exist_ok=True)
+        output_file = os.path.join(output_folder, '成分股.txt')
+        if os.path.exists(output_file):
+            os.remove(output_file)
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for code in sorted(all_stock_codes):
+                f.write(f"{code}\n")
+        st.success(f"成分股文件已保存至：{output_file}")
 
-            # ===================== 获取游资数据 =====================
-            df_filtered_z = add_hot_money_count(df_filtered_z, trade_dates, latest_trade_date)
-            df_filtered_up = add_hot_money_count(df_filtered_up, trade_dates, latest_trade_date)
+    except Exception as e:
+        logging.error(f"执行过程中出错: {e}")
+        st.error(f"程序执行出错：{e}")
 
-            # 调整列顺序
-            new_cols = [
-                ' 题材代码',
-                ' 题材名称',
-                ' 游资数',
-                '   涨停数',
-                '   升温值',
-                'ma5涨停',
-                'ma10涨停',
-                'ma5升温',
-                'ma10升温'
-            ]
-            df_filtered_z = df_filtered_z[new_cols]
-            df_filtered_up = df_filtered_up[new_cols]
 
-            # ===================== 在页面上显示结果 =====================
-            display_table(df_filtered_z, "近期最强题材")
-            display_table(df_filtered_up, "近期升温题材")
-
-            # ===================== 获取所有题材对应的成分股 =====================
-            df_filtered_all = pd.concat([df_filtered_z, df_filtered_up], ignore_index=True)
-            df_filtered_all = df_filtered_all.drop_duplicates(subset=[' 题材代码'])
-
-            all_stock_codes = set()
-            st.write("正在获取各题材的成分股……")
-            progress_bar_components = st.progress(0)
-            total_themes = len(df_filtered_all[' 题材代码'])
-            for i, theme_ts_code in enumerate(df_filtered_all[' 题材代码']):
-                component_stocks = get_component_stocks(theme_ts_code, trade_dates)
-                all_stock_codes.update(component_stocks)
-                progress_bar_components.progress((i + 1) / total_themes)
-
-            st.write(f"获取到的成分股总数: {len(all_stock_codes)}")
-            logging.info(f"Total unique component stocks collected: {len(all_stock_codes)}")
-
-            # ===================== 写入文件 =====================
-            if os.path.exists(output_file):
-                os.remove(output_file)
-                logging.info(f"已删除存在的文件: {output_file}")
-
-            with open(output_file, 'w', encoding='utf-8') as f:
-                for code in sorted(all_stock_codes):
-                    f.write(f"{code}\n")
-            logging.info(f"Component stock codes have been written to {output_file}")
-            st.success(f"成分股文件已保存至：{output_file}")
-
-            # 将分析结果缓存到 session_state
-            st.session_state[result_key] = {
-                'filtered_z': df_filtered_z,
-                'filtered_up': df_filtered_up,
-                'all_stock_codes': all_stock_codes,
-                'output_file': output_file
-            }
-
-        except Exception as e:
-            logging.error(f"An unexpected error occurred: {e}")
-            st.error(f"程序执行出错：{e}")
-
-# 显示缓存的结果
-def display_cached_results(result_data):
-    display_table(result_data['filtered_z'], "近期最强题材")
-    display_table(result_data['filtered_up'], "近期升温题材")
-    st.write(f"成分股文件已保存至：{result_data['output_file']}")
-    st.write(f"获取到的成分股总数: {len(result_data['all_stock_codes'])}")
+if __name__ == "__main__":
+    main()
