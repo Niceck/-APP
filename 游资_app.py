@@ -31,6 +31,8 @@ def fetch_data(trade_date, ts_code, hm_name, start_date, end_date, limit, offset
 
 def main():
     st.title("恢恢游资库")
+    st.markdown("本应用用于获取指定交易日内的指定游资买卖数据，不输入游资默认所有游资"
+               "左侧栏左下角设置参数")
     # Place parameter inputs in the left sidebar
     st.sidebar.header("参数设置")
     trade_date = st.sidebar.text_input("交易日期", "")
