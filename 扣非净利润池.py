@@ -5,11 +5,13 @@ import pandas as pd
 import streamlit as st
 from tqdm import tqdm
 from ratelimit import limits, sleep_and_retry
+from git_utils import git_update, git_push  # 引入 Git 更新相关函数
 
 # 从 secrets.toml 中读取 Tushare API Token
 tushare_token = st.secrets.get("api_keys", {}).get("tushare_token", "your_default_token_here")
 ts.set_token(tushare_token)
 pro = ts.pro_api()
+
 # =============== 2. 获取所有正常上市 A 股股票列表并过滤 ST ===============
 stock_list = pro.stock_basic(
     exchange='',
@@ -180,6 +182,7 @@ def save_top_100(df_top200):
             f.write(f"{code}\n")
 
     st.write(f"\n前 100 股票代码已保存到: {output_file}")
+    return output_file  # 返回文件路径以便后续 Git 更新
 
 # =============== 10. 主流程 ------------------------
 def main():
@@ -204,7 +207,12 @@ def main():
             return
 
         df_top200 = output_top_100(df_filtered)
-        save_top_100(df_top200)
+        output_file = save_top_100(df_top200)
+
+        # 调用 Git 更新：保存成功后，更新到 Git 仓库
+        if output_file and os.path.exists(output_file):
+            git_update(output_file, update_mode="replace")  # 此处采用覆盖更新
+            git_push(branch="main")
 
 if __name__ == "__main__":
     main()
