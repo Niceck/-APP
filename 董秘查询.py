@@ -114,13 +114,13 @@ def main():
     st.title("董秘问答查询")
     st.markdown("请输入查询参数，获取深圳和上海的董秘回答数据。")
 
-    # 侧边栏参数设置
-    st.sidebar.header("参数设置")
-    ts_code = st.sidebar.text_input("股票代码 (可留空)", value="")
-    trade_date = st.sidebar.date_input("交易日期", value=pd.to_datetime("today"))
+    # 主页参数设置
+    st.header("参数设置")
+    ts_code = st.text_input("股票代码 (可留空)", value="")
+    trade_date = st.date_input("交易日期", value=pd.to_datetime("today"))
     trade_date_str = trade_date.strftime("%Y%m%d")
 
-    if st.sidebar.button("开始查询"):
+    if st.button("开始查询"):
         # 先注入自定义 CSS 设置列宽
         set_custom_css()
 
