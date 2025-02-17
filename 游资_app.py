@@ -33,7 +33,9 @@ def main():
     # 用户输入 - 在主页设置输入框
     st.title("参数设置")
 
-    trade_date = st.text_input("交易日期格式：20250205", "")
+    trade_date = st.date_input("选择交易日期")
+    trade_date_str = trade_date.strftime("%Y%m%d") if trade_date else ""
+
     ts_code = st.text_input("股票代码格式：000901.SZ", "")
     hm_name = st.text_input("游资名称：陈小群 北京炒家等", "")
     start_date = st.text_input("开始日期", "")
@@ -43,7 +45,7 @@ def main():
     # 查询按钮 - 放在主页的上方
     if st.button('查询数据'):
         # 拉取数据
-        df = fetch_data(trade_date, ts_code, hm_name, start_date, end_date, limit)
+        df = fetch_data(trade_date_str, ts_code, hm_name, start_date, end_date, limit)
 
         # 检查是否成功获取数据
         if df.empty:
