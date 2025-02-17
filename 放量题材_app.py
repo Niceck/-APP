@@ -460,9 +460,9 @@ def main():
     """)
 
     # ==================== 参数设置 ====================
-    default_shareholder_pool = st.text_input("香港中央结算股东池", "date/股东.txt")
+    default_shareholder_pool = st.text_input("香港中央结算股东池", "date/游资.txt")
     extra_pools_input = st.text_input("股票池可多，间隔空格：date/涨停板.txt date/游资.txt date/RSI选股.txt "
-                                      "date/机构调研.txt date/扣非.txt date/成分股.txt","date/游资.txt")
+                                      "date/机构调研.txt date/扣非.txt date/成分股.txt","date/RSI选股.txt")
     concept_codes_input = st.text_input("题材代码（多个代码用空格分隔，留空则不使用）", "")
     run_button = st.button("开始筛选")
 
