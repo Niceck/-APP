@@ -108,30 +108,28 @@ def main():
     st.title("题材数据及成分股查询")
     st.markdown("输入查询日期和题材代码，获取对应的题材数据及成分股数据。")
 
-    # 主页参数输入
-    trade_date = st.date_input("选择日期", value=datetime.now().date())  # 设置默认值为当天日期
-    trade_date_str = trade_date.strftime("%Y%m%d") if trade_date else ""
-    concept_code = st.text_input("输入题材代码")
 
-    if st.button("开始查询"):
-        # 获取并展示题材数据（供参考）
-        st.subheader(f"题材数据（{trade_date_str}）")
-        concept_data = get_concept_data(trade_date_str)
-        if not concept_data.empty:
-            st.dataframe(concept_data)
-        else:
-            st.info("没有找到题材数据。")
 
-        # 获取成分股数据
-        if concept_code and trade_date:
-            st.subheader(f"题材成分股数据（{concept_code} - {trade_date_str}）")
-            cons_data = get_concept_cons_data(concept_code, trade_date_str)
-            if not cons_data.empty:
-                st.dataframe(cons_data)
-            else:
-                st.info("没有找到成分股数据。")
-        else:
-            st.info("请填写题材代码并选择日期。")
+
+    # 设置默认值为当天日期
+    trade_date_str = datetime.now().strftime("%Y%m%d")
+    concept_code = "默认题材代码"  # 这里需要替换为实际的默认题材代码
+
+    # 获取并展示题材数据（供参考）
+    st.subheader(f"题材数据（{trade_date_str}）")
+    concept_data = get_concept_data(trade_date_str)
+    if not concept_data.empty:
+        st.dataframe(concept_data)
+    else:
+        st.info("没有找到题材数据。")
+
+    # 获取成分股数据
+    st.subheader(f"题材成分股数据（{concept_code} - {trade_date_str}）")
+    cons_data = get_concept_cons_data(concept_code, trade_date_str)
+    if not cons_data.empty:
+        st.dataframe(cons_data)
+    else:
+        st.info("没有找到成分股数据。")
 
 if __name__ == "__main__":
     main()

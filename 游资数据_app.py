@@ -141,7 +141,7 @@ def fetch_hm_detail_by_days(dates, batch_size=500):
                     all_data = pd.concat([all_data, df], ignore_index=True)
         except Exception as e:
             logging.error(f"{d} 获取hm_detail出错: {e}")
-        progress_bar.progress((i + 1) / total)
+        progress_bar.progress((i + 1) / total)  # 更新进度条
     return all_data
 
 
@@ -168,7 +168,7 @@ def get_stock_names(ts_codes):
     batch_size = 500
     ts_name_dict = {}
     batches = list(split_list(ts_codes, batch_size))
-    progress_bar = st.progress(0)
+    progress_bar = st.progress(0)  # 初始化进度条
     total_batches = len(batches)
     for i, batch in enumerate(batches):
         try:
@@ -177,7 +177,7 @@ def get_stock_names(ts_codes):
                 ts_name_dict.update(dict(zip(df_basic['ts_code'], df_basic['name'])))
         except Exception as e:
             logging.error(f"获取股票名称时出错: {e}")
-        progress_bar.progress((i + 1) / total_batches)
+        progress_bar.progress((i + 1) / total_batches)  # 更新进度条
     return ts_name_dict
 
 
@@ -187,21 +187,10 @@ def main():
     st.title("游资净买入数据分析")
     st.markdown("本应用用于获取指定交易日内的游资净买入数据，并根据目标机构过滤、净买入金额等条件筛选股票。")
 
-    # 侧边栏参数设置
-    st.sidebar.header("参数设置")
-    num_days_input = st.sidebar.number_input("请输入要获取的交易天数", min_value=1, max_value=300, value=num_days,
-                                             step=1)
-    target_institutions_input = st.sidebar.text_input("请输入目标机构（多个机构用逗号分隔）",
-                                                      value=",".join(default_target_institutions))
-    use_filter = st.sidebar.checkbox("启用机构过滤", value=use_institution_filter)
-
     # 更新全局变量
-    use_institution_filter = use_filter
-    try:
-        num_days_value = int(num_days_input)
-    except Exception:
-        num_days_value = num_days
-    target_institutions = [inst.strip() for inst in target_institutions_input.split(",") if inst.strip()]
+    use_institution_filter = False  # 使用默认值
+    num_days_value = num_days  # 使用默认值
+    target_institutions = default_target_institutions  # 使用默认值
 
     if st.button("开始分析"):
         # 1. 获取最新交易日期
@@ -264,16 +253,11 @@ def main():
         st.subheader("重点关注游资股票")
         st.dataframe(results_df)
 
-        # 7. 筛选本人净额和全部净额均为正的股票
-        filtered_stocks = results_df[(results_df['本人净额(万)'] > 0) & (results_df['全部游资净额(万)'] > 0)]
-        st.subheader("本人净额和全部净额均为正的股票")
-        st.dataframe(filtered_stocks)
-
-        # 8. 保存结果并提供下载
+        # 7. 保存结果并提供下载
         file_name = "游资.txt"
         # 设置文件路径为相对路径的 'date' 文件夹
         file_path = os.path.join("date", file_name)
-        final_ts_codes = filtered_stocks['ts_code'].tolist()
+        final_ts_codes = results_df['ts_code'].tolist()
 
         try:
             # 确保 'date' 文件夹存在
