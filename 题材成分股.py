@@ -8,8 +8,6 @@ tushare_token = st.secrets["api_keys"]["tushare_token"]
 ts.set_token(tushare_token)
 pro = ts.pro_api()
 
-
-
 def get_concept_data(trade_date):
     """
     获取题材数据，字段包括：trade_date, ts_code, name, z_t_num
@@ -38,7 +36,6 @@ def get_concept_data(trade_date):
     except Exception as e:
         st.error(f"获取题材数据失败: {e}")
         return pd.DataFrame()
-
 
 def get_concept_cons_data(concept_code, trade_date):
     """
@@ -106,18 +103,20 @@ def get_concept_cons_data(concept_code, trade_date):
         st.error(f"获取成分股数据失败: {e}")
         return pd.DataFrame()
 
-
 def main():
     st.title("题材数据及成分股查询")
     st.markdown("输入查询日期和题材代码，获取对应的题材数据及成分股数据。")
 
-    # 侧边栏参数输入
-    st.sidebar.header("参数设置")
-    trade_date = st.sidebar.date_input("选择日期")
-    trade_date_str = trade_date.strftime("%Y%m%d")
-    concept_code = st.sidebar.text_input("输入题材代码")
+    # 主页参数输入
+    trade_date = st.date_input("选择日期")
+    trade_date_str = trade_date.strftime("%Y%m%d") if trade_date else ""
+    concept_code = st.text_input("输入题材代码")
+    start_date = st.date_input("开始日期")  # 修改为日期选择器
+    start_date_str = start_date.strftime("%Y%m%d") if start_date else ""
+    end_date = st.date_input("结束日期")  # 修改为日期选择器
+    end_date_str = end_date.strftime("%Y%m%d") if end_date else ""
 
-    if st.sidebar.button("开始查询"):
+    if st.button("开始查询"):
         # 获取并展示题材数据（供参考）
         st.subheader(f"题材数据（{trade_date_str}）")
         concept_data = get_concept_data(trade_date_str)
@@ -136,7 +135,6 @@ def main():
                 st.info("没有找到成分股数据。")
         else:
             st.info("请填写题材代码并选择日期。")
-
 
 if __name__ == "__main__":
     main()
