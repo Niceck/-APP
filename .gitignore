@@ -1,0 +1,11 @@
+# 忽略 API 配置文件
+.streamlit/secrets.toml
+
+# 忽略 PyCharm 配置文件
+.idea/
+
+# 忽略日志文件
+tushare_errors.log
+
+# 忽略所有 `.log` 文件（可选）
+*.log
