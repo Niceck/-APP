@@ -117,7 +117,7 @@ def main():
     # 主页参数设置
     st.header("参数设置")
     ts_code = st.text_input("股票代码 (可留空)", value="")
-    trade_date = st.date_input("交易日期", value=None)
+    trade_date = st.date_input("交易日期", value=pd.Timestamp.today().date())  # 修改: 设置默认值为当天日期
     trade_date_str = trade_date.strftime("%Y%m%d") if trade_date else ""
 
     if st.button("开始查询"):

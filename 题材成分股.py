@@ -1,6 +1,7 @@
 import streamlit as st
 import tushare as ts
 import pandas as pd
+from datetime import datetime
 
 tushare_token = st.secrets["api_keys"]["tushare_token"]
 
@@ -108,13 +109,9 @@ def main():
     st.markdown("输入查询日期和题材代码，获取对应的题材数据及成分股数据。")
 
     # 主页参数输入
-    trade_date = st.date_input("选择日期", value=None)
+    trade_date = st.date_input("选择日期", value=datetime.now().date())  # 设置默认值为当天日期
     trade_date_str = trade_date.strftime("%Y%m%d") if trade_date else ""
     concept_code = st.text_input("输入题材代码")
-    start_date = st.date_input("开始日期", value=None)
-    start_date_str = start_date.strftime("%Y%m%d") if start_date else ""
-    end_date = st.date_input("结束日期", value=None)
-    end_date_str = end_date.strftime("%Y%m%d") if end_date else ""
 
     if st.button("开始查询"):
         # 获取并展示题材数据（供参考）

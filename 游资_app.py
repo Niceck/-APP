@@ -33,14 +33,14 @@ def main():
     # 用户输入 - 在主页设置输入框
     st.title("参数设置")
 
-    trade_date = st.date_input("选择交易日期", value=None)
+    trade_date = st.date_input("选择交易日期", value=pd.Timestamp.today())  # 修改: 设置默认值为当天
     trade_date_str = trade_date.strftime("%Y%m%d") if trade_date else ""
 
     ts_code = st.text_input("股票代码格式：000901.SZ", "")
     hm_name = st.text_input("游资名称：陈小群 北京炒家等", "")
-    start_date = st.date_input("开始日期", value=None)
+    start_date = st.date_input("开始日期", value=None)  # 显式设置默认值为 None
     start_date_str = start_date.strftime("%Y%m%d") if start_date else ""
-    end_date = st.date_input("结束日期", value=None)
+    end_date = st.date_input("结束日期", value=None)  # 显式设置默认值为 None
     end_date_str = end_date.strftime("%Y%m%d") if end_date else ""
     limit = st.number_input("查询的最大数据条数", min_value=1, value=100)  # 用户输入 limit
 
@@ -76,3 +76,5 @@ def main():
 # 确保脚本以 main() 函数执行
 if __name__ == "__main__":
     main()
+
+

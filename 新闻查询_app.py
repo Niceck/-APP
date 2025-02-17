@@ -7,11 +7,9 @@ from datetime import datetime
 # -----------------------------
 # 全局变量定义
 # -----------------------------
-# 文件路径定义：将文件路径改为相对路径的 'date' 文件夹
 NEWS_FILE = os.path.join("date", 'news_data.csv')
 CCTV_NEWS_FILE = os.path.join("date", 'cctv_news_data.csv')
 
-# 预设默认关键词列表（用于统计）
 DEFAULT_KEYWORDS = [
     "航天", "军工", "卫星", "半导体", "量子", "AI", "华为", "电池", "航运", "白酒",
     "券商", "粮食", "农业", "养殖", "地产", "鸿蒙", "大飞机", "旅游", "保险", "热泵",
@@ -22,7 +20,6 @@ DEFAULT_KEYWORDS = [
     "低空", "氢能源", "人工智能", "养老", "光纤", "生物", "医美", "中药", "火箭",
 ]
 
-# 预设默认查询关键词列表（用于查询新闻内容）
 DEFAULT_QUERY_KEYWORDS = [
     "宽松货币政策", "减税降费", "监管放松", "增量资金入场", "外资持续流入", "融资融券余额上升",
     "业绩大幅增长", "业绩超预期", "订单快速增长", "产业政策利好", "技术突破或新产品落地",
@@ -81,7 +78,6 @@ def load_and_filter_data(user_date):
     st.success("数据加载和日期过滤完成。")
     return data
 
-
 def aggregate_counts(data, keywords):
     """
     分别统计新闻快讯和新闻联播数据中各关键词出现次数
@@ -109,14 +105,13 @@ def aggregate_counts(data, keywords):
 
     return counts_news, counts_cctv_news
 
-
 def query_keywords_in_data(data, query_keywords):
     """
     查询关键词的新闻内容
     """
-    output = ""
     for keyword in query_keywords:
-        # 新闻联播数据中包含该关键词
+        output = ""
+        # 查询新闻联播中包含该关键词的记录
         if 'cctv_news' in data and not data['cctv_news'].empty:
             matched_cctv = data['cctv_news'][
                 data['cctv_news']['content'].str.contains(re.escape(keyword), case=False, na=False)
@@ -128,7 +123,7 @@ def query_keywords_in_data(data, query_keywords):
                     date = str(row['date'])
                     content = str(row['content'])
                     output += f"- {date}: {content}\n"
-        # 新闻快讯数据中包含该关键词
+        # 查询新闻快讯中包含该关键词的记录
         if 'news' in data and not data['news'].empty:
             matched_news = data['news'][
                 data['news']['content'].str.contains(re.escape(keyword), case=False, na=False)
@@ -145,12 +140,11 @@ def query_keywords_in_data(data, query_keywords):
                 st.markdown(output)
     st.success("关键词查询完成。")
 
-
 def main():
     st.title("新闻数据关键词统计与查询")
     st.markdown("本应用用于统计桌面上新闻数据中指定关键词的出现次数，并查询相关新闻内容。")
 
-    # 参数设置移到主页
+    # 用户输入额外查询关键词
     user_input = st.text_input("请输入额外的查询关键词（用空格分隔）：", "")
     if user_input:
         query_keywords = [kw.strip() for kw in user_input.split() if kw.strip()]
@@ -159,58 +153,51 @@ def main():
         query_keywords = DEFAULT_QUERY_KEYWORDS.copy()
         st.write("未输入查询关键词，将使用默认查询关键词。")
 
-    # 使用 st.date_input 替代 st.text_input，并设置默认值为 None
-    user_date = st.date_input("请输入要统计的起始日期：", None)
-    if user_date:
-        user_date_str = user_date.strftime('%Y%m%d')
-        st.write(f"使用输入的起始日期：{user_date_str}")
-    else:
-        user_date_str = None
+    # 使用 st.date_input，默认选中当天日期
+    today = datetime.now().date()
+    user_date = st.date_input("请输入要统计的起始日期：", today)
+
+    # 格式化日期为字符串形式 YYYYMMDD
+    user_date_str = user_date.strftime('%Y%m%d')
+    st.write(f"使用输入的起始日期：{user_date_str}")
 
     # 开始统计按钮
     if st.button("开始统计和查询"):
-        if user_date_str is None:
-            st.warning("请输入有效的起始日期。")
+        st.info("正在加载数据，请稍后...")
+        data = load_and_filter_data(user_date_str)
+
+        # 统计关键词出现次数
+        keywords = DEFAULT_KEYWORDS.copy()
+        st.write(f"使用关键词列表进行统计，共 {len(keywords)} 个关键词。")
+        st.info("正在统计关键词出现次数...")
+        counts_news, counts_cctv_news = aggregate_counts(data, keywords)
+
+        # 构造统计结果 DataFrame
+        df = pd.DataFrame([{
+            '题材': kw,
+            '新闻联播': counts_cctv_news.get(kw, 0),
+            '新闻快讯': counts_news.get(kw, 0)
+        } for kw in keywords])
+        # 分别按新闻联播和新闻快讯排序，并取前30
+        df_cctv_sorted = df.sort_values(by='新闻联播', ascending=False).head(30).reset_index(drop=True)
+        df_news_sorted = df.sort_values(by='新闻快讯', ascending=False).head(30).reset_index(drop=True)
+
+        st.subheader("关键词出现次数统计结果")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("按 **新闻联播** 排序（前30）：")
+            st.dataframe(df_cctv_sorted)
+        with col2:
+            st.write("按 **新闻快讯** 排序（前30）：")
+            st.dataframe(df_news_sorted)
+
+        # 查询关键词的新闻内容
+        if query_keywords:
+            query_keywords_in_data(data, query_keywords)
         else:
-            st.info("正在加载数据，请稍后...")
-            data = load_and_filter_data(user_date_str)
+            st.info("未输入查询关键词，跳过查询新闻内容。")
 
-            # 统计关键词出现次数
-            keywords = DEFAULT_KEYWORDS.copy()
-            st.write(f"使用关键词列表进行统计，共 {len(keywords)} 个关键词。")
-            st.info("正在统计关键词出现次数...")
-            counts_news, counts_cctv_news = aggregate_counts(data, keywords)
+        st.success("统计和查询全部完成。")
 
-            # 构造统计结果 DataFrame
-            df = pd.DataFrame([{
-                '题材': kw,
-                '新闻联播': counts_cctv_news.get(kw, 0),
-                '新闻快讯': counts_news.get(kw, 0)
-            } for kw in keywords])
-            # 分别按新闻联播和新闻快讯排序，并取前30
-            df_cctv_sorted = df.sort_values(by='新闻联播', ascending=False).head(30).reset_index(drop=True)
-            df_news_sorted = df.sort_values(by='新闻快讯', ascending=False).head(30).reset_index(drop=True)
-
-            st.subheader("关键词出现次数统计结果")
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write("按 **新闻联播** 排序（前30）：")
-                st.dataframe(df_cctv_sorted)
-            with col2:
-                st.write("按 **新闻快讯** 排序（前30）：")
-                st.dataframe(df_news_sorted)
-
-            # 查询关键词的新闻内容
-            if query_keywords:
-                query_keywords_in_data(data, query_keywords)
-            else:
-                st.info("未输入查询关键词，跳过查询新闻内容。")
-
-            st.success("统计和查询全部完成。")
-
-
-# -----------------------------
-# 程序入口
-# -----------------------------
 if __name__ == "__main__":
     main()
