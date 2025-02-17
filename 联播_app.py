@@ -74,7 +74,7 @@ def get_start_date_from_df(df):
     """
     从已有数据中找出最大 date，
     返回该日期（YYYYMMDD）的字符串，作为增量数据拉取的起始日期
-    注意：这里直接返回最大日期，因为 tushare 接口的 start_date 参数是包含该日期的，
+    注意：这里直接返回最大日期，因为 接口的 start_date 参数是包含该日期的，
     这样拉取的记录可能重复，但后续会通过合并去重解决。
     """
     try:
@@ -224,7 +224,7 @@ def main():
     # 1. 初始化 Tushare 接口
     try:
         pro = ts.pro_api(tushare_token)
-        st.success("成功初始化 Tushare Pro 接口。")
+        st.success("成功初始化接口")
     except Exception as e:
         st.error(f"初始化 Tushare Pro 接口失败: {e}")
         logging.error("初始化 Tushare Pro 接口失败", exc_info=True)

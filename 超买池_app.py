@@ -16,7 +16,6 @@ tushare_token = st.secrets.get("api_keys", {}).get("tushare_token", "your_defaul
 ts.set_token(tushare_token)
 pro = ts.pro_api()
 
-
 def get_recent_trading_days(n, days_back=60):
     """
     从 Tushare 获取最近 days_back 天的交易日历，
@@ -65,36 +64,49 @@ def main():
     st.title("RSI强势选股")
     st.write("选出短期持续超买股票，可沿5日均线顺势交易")
 
-    # 自动获取最近 3 个交易日（升序排列）
-    trading_days = get_recent_trading_days(3)
-    if len(trading_days) < 3:
+    # 一次性获取更多交易日，这里取最近7个（也可改成10、15等）
+    all_days = get_recent_trading_days(n=7, days_back=60)
+    if len(all_days) < 3:
         st.error("无法获取足够的交易日数据。")
         return
-    st.write("使用交易日：", trading_days)
 
-    # 分别获取这 3 个交易日的 RSI6 数据（单日查询），传入参数 trade_date
-    dfs = []
-    for day in trading_days:
+    # 从最新往前检查哪个交易日有 stk_factor 数据，直到凑够3个
+    valid_days = []
+    day_data_map = {}  # 存放各交易日的 df
+    for day in reversed(all_days):
         df_day = pro.stk_factor(trade_date=day, fields="rsi_6,ts_code")
         if df_day.empty:
-            st.warning(f"{day} 的 RSI 数据为空。")
+            st.warning(f"{day} 无法获取 RSI6 数据，跳过该日...")
         else:
-            # 将 RSI6 列重命名为 rsi6_日期
-            df_day = df_day.rename(columns={"rsi_6": f"rsi6_{day}"})
-            dfs.append(df_day)
+            day_data_map[day] = df_day
+            valid_days.append(day)
+            if len(valid_days) == 3:
+                break
 
-    if len(dfs) < 3:
-        st.error("至少有一天的数据为空，无法进行筛选。")
+    # 如果凑不够3天有效数据，则报错
+    if len(valid_days) < 3:
+        st.error("回退后依然无法凑齐 3 个交易日的有效数据，筛选终止。")
         return
 
-    # 内连接合并 3 个 DataFrame（按股票代码）
+    # 将有效交易日从早到晚排序（原本 valid_days 是从新到旧）
+    valid_days = sorted(valid_days)
+
+    st.write("使用交易日：", valid_days)
+
+    # 分别处理这 3 个交易日的 df，并重命名 RSI6 列
+    dfs = []
+    for day in valid_days:
+        df_day = day_data_map[day].rename(columns={"rsi_6": f"rsi6_{day}"})
+        dfs.append(df_day)
+
+    # 依次内连接合并 3 个 DataFrame（按股票代码）
     df_merged = dfs[0]
     for df in dfs[1:]:
         df_merged = pd.merge(df_merged, df, on="ts_code", how="inner")
 
     # 筛选出这 3 个交易日内 RSI6 均大于等于 80 的股票
     condition = True
-    for day in trading_days:
+    for day in valid_days:
         condition &= (df_merged[f"rsi6_{day}"] >= 80)
     df_selected = df_merged[condition]
 

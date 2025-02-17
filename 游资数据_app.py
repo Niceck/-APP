@@ -20,6 +20,8 @@ pro = ts.pro_api()
 logging.basicConfig(filename='error.log', level=logging.ERROR,
                     format='%(asctime)s %(levelname)s:%(message)s')
 
+pd.set_option('display.max_colwidth', None)
+
 # 默认参数设置
 num_days = 1
 default_target_institutions = ['陈小群']
@@ -73,6 +75,7 @@ def save_selected_stocks(selected_ts_codes, file_name):
         logging.info(f"选定的股票代码已成功保存到: {file_path}")
     except Exception as e:
         logging.error(f"保存选定股票代码时出错: {e}")
+
 
 def get_trade_calendar(required_days):
     """
@@ -201,35 +204,55 @@ def main():
         if not latest_trade_date:
             st.error("无法获取最新的交易日期，程序退出。")
             return
-        st.success(f"最新交易日期：{latest_trade_date}")
 
-        # 2. 获取足够的交易日历
-        available_days = get_trade_calendar(required_days=num_days_value)
-        last_days = get_last_n_trading_days(available_days, n=num_days_value)
+        # 2. 如果最新交易日数据为空，则不断回撤
+        current_day = latest_trade_date
+        retry = 0
+        max_retries = 7
+        while retry < max_retries:
+            st.info(f"尝试使用交易日期：{current_day}")
+            hm_data = fetch_hm_detail_by_days([current_day])
+            if not hm_data.empty:
+                break
+            else:
+                st.warning(f"{current_day} 的数据为空，正在回撤到前一个交易日...")
+                new_day = rollback_date(current_day, max_retries=1)
+                if new_day is None:
+                    st.error("无法回撤到有数据的交易日，程序退出。")
+                    return
+                current_day = new_day
+                retry += 1
+
+        if hm_data.empty:
+            st.error("经过多次回撤，仍未获取到有效数据。")
+            return
+        st.success(f"使用的交易日期：{current_day}")
+
+        # 3. 使用回溯到的交易日进行分析（由于 num_days_value 默认为 1，直接用 current_day）
+        last_days = [current_day]
         st.write(f"分析交易日期：{last_days}")
 
-        # 3. 获取游资净买入数据
-        st.info("正在获取游资净买入数据，请稍候...")
+        # 4. 获取游资净买入数据（已在回溯中获取，如需重新获取可调用下行代码）
         hm_data = fetch_hm_detail_by_days(last_days)
         if hm_data.empty:
             st.error("未获取到任何游资净买入数据，程序退出。")
             return
         st.success("游资净买入数据获取完成。")
 
-        # 4. 根据目标机构过滤数据（若启用过滤）
+        # 5. 根据目标机构过滤数据（若启用过滤）
         filtered_data = filter_by_institutions(hm_data, target_institutions)
         if filtered_data.empty:
             st.error("经过机构过滤后未获取到任何数据，程序退出。")
             return
 
-        # 5. 获取筛选后的股票代码及对应股票名称
+        # 6. 获取筛选后的股票代码及对应股票名称
         selected_ts_codes_by_institutions = filtered_data['ts_code'].unique().tolist()
         st.info(f"筛选后股票数量：{len(selected_ts_codes_by_institutions)}")
 
         st.info("正在获取股票名称...")
         ts_name_dict = get_stock_names(selected_ts_codes_by_institutions)
 
-        # 6. 构建结果
+        # 7. 构建结果，只保留游资总净额为正的股票；本人净额列已去掉
         results = []
         for code in selected_ts_codes_by_institutions:
             ts_name = ts_name_dict.get(code, "未知名称")
@@ -237,30 +260,29 @@ def main():
             trade_dates_str = ', '.join(trade_dates) if len(trade_dates) > 0 else '无日期信息'
             hm_names = filtered_data[filtered_data['ts_code'] == code]['hm_name'].unique()
             hm_names_str = ', '.join(hm_names) if len(hm_names) > 0 else "无游资信息"
-            sum_net_amount_filtered = int(filtered_data[filtered_data['ts_code'] == code]['net_amount'].sum() / 10_000)
             sum_net_amount_all = int(hm_data[hm_data['ts_code'] == code]['net_amount'].sum() / 10_000)
+            # 只保存游资总净额为正的股票
+            if sum_net_amount_all <= 0:
+                continue
             results.append({
                 'ts_code': code,
                 '交易日期': trade_dates_str,
                 '股票名称': ts_name,
                 '游资名称': hm_names_str,
-                '本人净额(万)': sum_net_amount_filtered,
                 '全部游资净额(万)': sum_net_amount_all
             })
 
         results_df = pd.DataFrame(results)
-
+        # 将索引从 1 开始
+        results_df.index = range(1, len(results_df) + 1)
         st.subheader("重点关注游资股票")
         st.dataframe(results_df)
 
-        # 7. 保存结果并提供下载
+        # 8. 保存结果并提供下载
         file_name = "游资.txt"
-        # 设置文件路径为相对路径的 'date' 文件夹
         file_path = os.path.join("date", file_name)
         final_ts_codes = results_df['ts_code'].tolist()
-
         try:
-            # 确保 'date' 文件夹存在
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             with open(file_path, "w", encoding='utf-8') as file:
                 for ts_code in final_ts_codes:
