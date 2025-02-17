@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import re
 import os
-import time
 from datetime import datetime
 
 # -----------------------------
@@ -42,50 +41,12 @@ DEFAULT_QUERY_KEYWORDS = [
     "两会重点关注", "大合同", "增量业绩", "应用前景", "逆回购", "【央行：",
 ]
 
-
-# -----------------------------
-# 数据保存相关函数（可选）
-# -----------------------------
-def save_data(df, save_file, subset_columns):
-    if os.path.exists(save_file):
-        try:
-            existing_df = pd.read_csv(save_file, encoding='utf-8-sig')
-            combined_df = pd.concat([existing_df, df], ignore_index=True)
-            st.info(f"已读取现有数据，从 {save_file} 中。")
-        except Exception as e:
-            st.error(f"读取现有数据失败: {e}")
-            combined_df = df
-    else:
-        combined_df = df
-
-    before_dedup = len(combined_df)
-    combined_df.drop_duplicates(subset=subset_columns, inplace=True)
-    after_dedup = len(combined_df)
-    duplicates_removed = before_dedup - after_dedup
-    if duplicates_removed > 0:
-        st.info(f"去除了 {duplicates_removed} 条重复记录。")
-
-    try:
-        combined_df.to_csv(save_file, index=False, encoding='utf-8-sig')
-        st.success(f"已保存数据到 {save_file}。")
-    except Exception as e:
-        st.error(f"保存数据失败: {e}")
-
-
-def save_data_override(df, save_file):
-    try:
-        df.to_csv(save_file, index=False, encoding='utf-8-sig')
-        st.success(f"已覆盖保存数据到 {save_file}。")
-    except Exception as e:
-        st.error(f"保存数据失败: {e}")
-
-
 # -----------------------------
 # 数据加载及统计函数
 # -----------------------------
-def load_data():
+def load_and_filter_data(user_date):
     """
-    从 CSV 文件加载新闻数据
+    从 CSV 文件加载新闻数据并过滤指定日期及以后的数据
     """
     data = {}
     if os.path.exists(NEWS_FILE):
@@ -110,6 +71,14 @@ def load_data():
         st.warning("新闻联播数据文件不存在。")
         data['cctv_news'] = pd.DataFrame()
 
+    # 日期过滤：仅保留指定日期及以后的数据
+    if user_date:
+        if not data['news'].empty and 'datetime' in data['news'].columns:
+            data['news']['date_str'] = pd.to_datetime(data['news']['datetime'], errors='coerce').dt.strftime('%Y%m%d')
+            data['news'] = data['news'][data['news']['date_str'] >= user_date]
+        if not data['cctv_news'].empty and 'date' in data['cctv_news'].columns:
+            data['cctv_news'] = data['cctv_news'][data['cctv_news']['date'].astype(str) >= user_date]
+    st.success("数据加载和日期过滤完成。")
     return data
 
 
@@ -141,6 +110,42 @@ def aggregate_counts(data, keywords):
     return counts_news, counts_cctv_news
 
 
+def query_keywords_in_data(data, query_keywords):
+    """
+    查询关键词的新闻内容
+    """
+    output = ""
+    for keyword in query_keywords:
+        # 新闻联播数据中包含该关键词
+        if 'cctv_news' in data and not data['cctv_news'].empty:
+            matched_cctv = data['cctv_news'][
+                data['cctv_news']['content'].str.contains(re.escape(keyword), case=False, na=False)
+            ]
+            if not matched_cctv.empty:
+                output += f"**新闻联播中包含 '{keyword}' 的记录：**\n"
+                matched_cctv_sorted = matched_cctv.sort_values(by='date', ascending=False)
+                for idx, row in matched_cctv_sorted.iterrows():
+                    date = str(row['date'])
+                    content = str(row['content'])
+                    output += f"- {date}: {content}\n"
+        # 新闻快讯数据中包含该关键词
+        if 'news' in data and not data['news'].empty:
+            matched_news = data['news'][
+                data['news']['content'].str.contains(re.escape(keyword), case=False, na=False)
+            ]
+            if not matched_news.empty:
+                output += f"\n**新闻快讯中包含 '{keyword}' 的记录：**\n"
+                matched_news_sorted = matched_news.sort_values(by='datetime', ascending=False)
+                for idx, row in matched_news_sorted.iterrows():
+                    datetime_str = str(row['datetime'])
+                    content = str(row['content'])
+                    output += f"- {datetime_str}: {content}\n"
+        if output:
+            with st.expander(f"关键词： {keyword}"):
+                st.markdown(output)
+    st.success("关键词查询完成。")
+
+
 # -----------------------------
 # 主函数：使用 Streamlit 构建页面
 # -----------------------------
@@ -148,41 +153,30 @@ def main():
     st.title("新闻数据关键词统计与查询")
     st.markdown("本应用用于统计桌面上新闻数据中指定关键词的出现次数，并查询相关新闻内容。")
 
-    # Sidebar 设置
-    st.sidebar.header("参数设置")
-    user_input = st.sidebar.text_input("请输入额外的查询关键词（用空格分隔）：", "")
+    # 参数设置移到主页
+    user_input = st.text_input("请输入额外的查询关键词（用空格分隔）：", "")
     if user_input:
         query_keywords = [kw.strip() for kw in user_input.split() if kw.strip()]
-        st.sidebar.write(f"已输入查询关键词，共 {len(query_keywords)} 个。")
+        st.write(f"已输入查询关键词，共 {len(query_keywords)} 个。")
     else:
         query_keywords = DEFAULT_QUERY_KEYWORDS.copy()
-        st.sidebar.write("未输入查询关键词，将使用默认查询关键词。")
+        st.write("未输入查询关键词，将使用默认查询关键词。")
 
-    user_date = st.sidebar.text_input("请输入要统计的起始日期 (YYYYMMDD格式)：", "")
+    user_date = st.text_input("请输入要统计的起始日期 (YYYYMMDD格式)：", "")
     if user_date:
         if not re.match(r'^\d{8}$', user_date):
-            st.sidebar.warning("输入日期格式无效，将使用当天日期。")
+            st.warning("输入日期格式无效，将使用当天日期。")
             user_date = datetime.now().strftime('%Y%m%d')
         else:
-            st.sidebar.write(f"使用输入的起始日期：{user_date}")
+            st.write(f"使用输入的起始日期：{user_date}")
     else:
         user_date = datetime.now().strftime('%Y%m%d')
-        st.sidebar.write(f"未输入起始日期，使用当天日期：{user_date}")
+        st.write(f"未输入起始日期，使用当天日期：{user_date}")
 
     # 开始统计按钮
-    if st.sidebar.button("开始统计和查询"):
+    if st.button("开始统计和查询"):
         st.info("正在加载数据，请稍后...")
-        data = load_data()
-
-        # 日期过滤：仅保留指定日期及以后的数据
-        if user_date:
-            if not data['news'].empty and 'datetime' in data['news'].columns:
-                data['news']['date_str'] = pd.to_datetime(data['news']['datetime'], errors='coerce').dt.strftime(
-                    '%Y%m%d')
-                data['news'] = data['news'][data['news']['date_str'] >= user_date]
-            if not data['cctv_news'].empty and 'date' in data['cctv_news'].columns:
-                data['cctv_news'] = data['cctv_news'][data['cctv_news']['date'].astype(str) >= user_date]
-        st.success("数据加载和日期过滤完成。")
+        data = load_and_filter_data(user_date)
 
         # 统计关键词出现次数
         keywords = DEFAULT_KEYWORDS.copy()
@@ -211,37 +205,7 @@ def main():
 
         # 查询关键词的新闻内容
         if query_keywords:
-            st.subheader("查询关键词的新闻内容")
-            for keyword in query_keywords:
-                output = ""
-                # 新闻联播数据中包含该关键词
-                if 'cctv_news' in data and not data['cctv_news'].empty:
-                    matched_cctv = data['cctv_news'][
-                        data['cctv_news']['content'].str.contains(re.escape(keyword), case=False, na=False)
-                    ]
-                    if not matched_cctv.empty:
-                        output += f"**新闻联播中包含 '{keyword}' 的记录：**\n"
-                        matched_cctv_sorted = matched_cctv.sort_values(by='date', ascending=False)
-                        for idx, row in matched_cctv_sorted.iterrows():
-                            date = str(row['date'])
-                            content = str(row['content'])
-                            output += f"- {date}: {content}\n"
-                # 新闻快讯数据中包含该关键词
-                if 'news' in data and not data['news'].empty:
-                    matched_news = data['news'][
-                        data['news']['content'].str.contains(re.escape(keyword), case=False, na=False)
-                    ]
-                    if not matched_news.empty:
-                        output += f"\n**新闻快讯中包含 '{keyword}' 的记录：**\n"
-                        matched_news_sorted = matched_news.sort_values(by='datetime', ascending=False)
-                        for idx, row in matched_news_sorted.iterrows():
-                            datetime_str = str(row['datetime'])
-                            content = str(row['content'])
-                            output += f"- {datetime_str}: {content}\n"
-                if output:
-                    with st.expander(f"关键词： {keyword}"):
-                        st.markdown(output)
-            st.success("关键词查询完成。")
+            query_keywords_in_data(data, query_keywords)
         else:
             st.info("未输入查询关键词，跳过查询新闻内容。")
 
