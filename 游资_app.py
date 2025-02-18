@@ -1,9 +1,8 @@
 import tushare as ts
 import pandas as pd
-import os
 import streamlit as st
 
-# 设置 Pandas 显示选项，确保 '接受机构' 列完全显示
+# 设置 Pandas 显示选项，确保完整显示内容
 pd.set_option('display.max_colwidth', None)
 
 # 从 secrets.toml 文件中读取 Tushare API Token
@@ -13,10 +12,10 @@ tushare_token = st.secrets["api_keys"]["tushare_token"]
 ts.set_token(tushare_token)
 pro = ts.pro_api()
 
-# 拉取数据
-def fetch_data(trade_date, ts_code, hm_name, start_date, end_date, limit, offset=0):
+
+# 拉取数据，只使用日期范围查询
+def fetch_data(ts_code, hm_name, start_date, end_date, limit, offset=0):
     df = pro.hm_detail(
-        trade_date=trade_date,
         ts_code=ts_code,
         hm_name=hm_name,
         start_date=start_date,
@@ -27,33 +26,28 @@ def fetch_data(trade_date, ts_code, hm_name, start_date, end_date, limit, offset
     )
     return df
 
-def main():
-    import streamlit as st
 
-    # 用户输入 - 在主页设置输入框
+def main():
     st.title("参数设置")
 
-    trade_date = st.date_input("选择交易日期", value=pd.Timestamp.today())  # 修改: 设置默认值为当天
-    trade_date_str = trade_date.strftime("%Y%m%d") if trade_date else ""
+    ts_code = st.text_input("输入股票代码（可留空）：XXXXXX.XX", "")
+    hm_name = st.text_input("输入游资名称（可留空）", "")
 
-    ts_code = st.text_input("股票代码格式：000901.SZ", "")
-    hm_name = st.text_input("游资名称：陈小群 北京炒家等", "")
-    start_date = st.date_input("开始日期", value=None)  # 显式设置默认值为 None
+    # 选择开始日期和结束日期（默认值设为当天）
+    start_date = st.date_input("开始日期", value=pd.Timestamp.today())
     start_date_str = start_date.strftime("%Y%m%d") if start_date else ""
-    end_date = st.date_input("结束日期", value=None)  # 显式设置默认值为 None
+    end_date = st.date_input("结束日期", value=pd.Timestamp.today())
     end_date_str = end_date.strftime("%Y%m%d") if end_date else ""
-    limit = st.number_input("查询的最大数据条数", min_value=1, value=100)  # 用户输入 limit
 
-    # 查询按钮 - 放在主页的上方
+    limit = st.number_input("查询的最大数据条数", min_value=1, value=100)
+
     if st.button('查询数据'):
-        # 拉取数据
-        df = fetch_data(trade_date_str, ts_code, hm_name, start_date_str, end_date_str, limit)
+        df = fetch_data(ts_code, hm_name, start_date_str, end_date_str, limit)
 
-        # 检查是否成功获取数据
         if df.empty:
             st.warning("未获取到任何数据。请检查输入参数或网络连接。")
         else:
-            # 转换买入金额、卖出金额、净买入金额为单位万（不保留小数）
+            # 转换金额单位为万（整数）
             df['buy_amount'] = df['buy_amount'] // 10000
             df['sell_amount'] = df['sell_amount'] // 10000
             df['net_amount'] = df['net_amount'] // 10000
@@ -69,12 +63,9 @@ def main():
                 'hm_name': '游资名称'
             }, inplace=True)
 
-            # 显示数据表格
             st.write("### 游资数据")
             st.dataframe(df, use_container_width=True, hide_index=True)
 
-# 确保脚本以 main() 函数执行
+
 if __name__ == "__main__":
     main()
-
-
