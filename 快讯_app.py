@@ -99,17 +99,7 @@ def update_cache(cache_file, latest_datetime):
 
 
 def fetch_news_data(pro, last_datetime=None, limit=1000, calls_per_minute=10):
-    """
-    拉取新闻快讯数据，并处理分页。
 
-    参数：
-    - pro: Tushare Pro 接口实例。
-    - last_datetime: 上次拉取数据的最新 datetime，用于只拉取新数据。
-    - limit: 每次调用返回的记录数。
-    - calls_per_minute: 每分钟最大调用次数。
-
-    采用滑动窗口的方式记录过去60秒内的调用次数，超过限制则等待剩余时间。
-    """
     all_data = []
     offset = 0
     api_call_timestamps = []  # 用于记录每次调用的时间戳
@@ -187,10 +177,10 @@ def main():
 
     try:
         pro = ts.pro_api(tushare_token)
-        st.success("成功初始化Tushare Pro接口。")
+        st.success("成功初始化")
     except Exception as e:
-        st.error(f"初始化Tushare Pro接口失败: {e}")
-        logging.error("初始化Tushare Pro接口失败", exc_info=True)
+        st.error(f"初始化失败: {e}")
+        logging.error("初始化失败", exc_info=True)
         return
 
     # 读取缓存中的最新 datetime
