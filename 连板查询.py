@@ -242,7 +242,7 @@ def run_analysis(token):
     # ------------------ 将最新一天的连板股票代码保存到文件“date/涨停板.txt” ------------------
     latest_date = display_dates[0]
     latest_date_stocks = stocks_data_per_date.get(latest_date, pd.DataFrame())
-    latest_date_stocks = latest_date_stocks[['name', 'nums', 'theme']]
+    latest_date_stocks = latest_date_stocks[['ts_code']]
     file_path = "date/涨停板.txt"
     latest_date_stocks.to_csv(file_path, index=False, encoding='utf-8')
     st.success(f"最新一天的连板股票代码已保存到 {file_path}")
