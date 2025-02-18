@@ -5,3 +5,4 @@ ta-lib-bin
 numpy==1.26.4
 ratelimit
 streamlit-lottie
+plotly
